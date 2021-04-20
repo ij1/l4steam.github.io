@@ -296,7 +296,7 @@ static void dualpi2_read_ect(struct sk_buff *skb)
 	struct dualpi2_skb_cb *cb = dualpi2_skb_cb(skb);
 	int wlen = skb_network_offset(skb);
 
-	switch (tc_skb_protocol(skb)) {
+	switch (skb_protocol(skb, true)) {
 	case htons(ETH_P_IP):
 		wlen += sizeof(struct iphdr);
 		if (!pskb_may_pull(skb, wlen) ||

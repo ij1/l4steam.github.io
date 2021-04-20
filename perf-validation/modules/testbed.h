@@ -31,7 +31,7 @@ static inline void testbed_inc_drop_count(struct testbed_metrics *testbed,
 
 	u32 wlen = skb_network_offset(skb);
 
-	switch (tc_skb_protocol(skb)) {
+	switch (skb_protocol(skb, true)) {
 	case htons(ETH_P_IP):
 		wlen += sizeof(struct iphdr);
 		if (!pskb_may_pull(skb, wlen))
@@ -118,7 +118,7 @@ static inline void testbed_add_metrics(struct sk_buff *skb,
 	}
 
 	/* TODO: IPv6 support using flow label (and increase resolution?) */
-	switch (tc_skb_protocol(skb)) {
+	switch (skb_protocol(skb, true)) {
 	case htons(ETH_P_IP):
 		wlen += sizeof(struct iphdr);
 		if (!pskb_may_pull(skb, wlen) ||
