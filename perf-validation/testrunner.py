@@ -90,6 +90,8 @@ def CCAFactory(name=None, color=None, aqm=None, ecn=None, ecnopt=-1, ecnunsafe=-
             raise ValueError('aqm required')
         if ecn is None:
             raise ValueError('ecn required')
+        if ecnopt == -1:
+            ecnopt = 1
         if ecnunsafe == -1:
             ecnunsafe = 1
 
@@ -153,7 +155,8 @@ def CCAFactory(name=None, color=None, aqm=None, ecn=None, ecnopt=-1, ecnunsafe=-
         NewCCA.AQM_NAME = NewCCA.aqm_name()
     if ecn is not None:
         NewCCA.ECN = ecn
-    NewCCA.ECNOPT = ecnopt if ecnopt != -1 else 1
+    if ecnopt != -1:
+        NewCCA.ECNOPT = ecnopt
     if ecnunsafe != -1:
         NewCCA.ECNUNSAFE = ecnunsafe
     # E.g., for TCP Prague:
