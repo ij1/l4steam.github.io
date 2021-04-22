@@ -26,7 +26,7 @@ plt.style.use('ggplot')
 KERNEL_VERSION='.'.join(platform.release().split('.')[0:2])
 
 ACCECN_ENABLED_VALUE=5
-if KERNEL_VERSION < 5.10:
+if float(KERNEL_VERSION) < 5.10:
     ACCECN_ENABLED_VALUE=3
 
 US_PER_S = 1_000_000
