@@ -518,9 +518,12 @@ def gen_testplan():
     Cubic = CCAFactory(name='Cubic', color='orange', aqm='fq_codel_tst', ecn=1)
 
     ccs = []
-    ccs.append(Prague)
+    for unsafe in range(2):
+        for opt in range(3):
+            ccs.append(CCAFactory(ecnopt=opt, ecnunsafe=unsafe, superklass=Prague))
+            ccs.append(CCAFactory(ecn=5, ecnopt=opt, ecnunsafe=unsafe, superklass=Cubic))
     ccs.append(Cubic)
-    ccs.append(CCAFactory(ecn=5, superklass=Cubic))
+
     for bw in [20, 100, 500]:
         for rtt in [5, 20, 40, 80]:
                 for cc in ccs:
