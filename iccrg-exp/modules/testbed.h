@@ -1,5 +1,10 @@
+#include <linux/version.h>
 #include <net/inet_ecn.h>
 #include "numbers.h"
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,8,0)
+#define skb_protocol(skb, val) tc_skb_protocol(skb)
+#endif
 
 /* This constant defines whether to include drop/queue level report and other
  * testbed related stuff we only want while developing our scheduler.

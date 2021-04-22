@@ -24,10 +24,15 @@
 #include <linux/module.h>
 #include <linux/skbuff.h>
 #include <linux/types.h>
+#include <linux/version.h>
 
 #include <net/inet_ecn.h>
 #include <net/pkt_sched.h>
 #include <net/pkt_cls.h>
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,8,0)
+#define skb_protocol(skb, val) tc_skb_protocol(skb)
+#endif
 
 /* 32b enable to support flows with windows up to ~8.6 * 1e9 packets
  * i.e., twice the maximal snd_cwnd.
