@@ -12,6 +12,7 @@ import pathlib
 import subprocess as sp
 import sys
 import time
+import platform
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -22,6 +23,11 @@ log.basicConfig(level=log.INFO)
 
 plt.style.use('ggplot')
 
+KERNEL_VERSION='.'.join(platform.release().split('.')[0:2])
+
+ACCECN_ENABLED_VALUE=5
+if KERNEL_VERSION < 5.10:
+    ACCECN_ENABLED_VALUE=3
 
 US_PER_S = 1_000_000
 
@@ -97,7 +103,7 @@ class Prague(Cubic):
     NAME = 'prague'
     COLOR = 'blue'
     AQM = AQM_NAME = 'dualpi2'
-    ECN = 5
+    ECN = ACCECN_ENABLED_VALUE
     PARAMS = {
        # 'rtt_scaling': '1',
        # 'rtt_target': '25000',
