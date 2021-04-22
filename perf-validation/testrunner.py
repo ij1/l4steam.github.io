@@ -382,7 +382,7 @@ class Test(object):
         return min(time_base)
 
     def plot_ce(self, ax):
-        ax.set_ylabel('CE marks')
+        ax.set_ylabel('CE marks / sec')
 
         series = [('s1', self.cc1)]
         for i, cc in self.enumerate_cc2():
@@ -392,7 +392,8 @@ class Test(object):
             log.info('.. ce for client=%s', host)
             base, delay, t, ce = self.process_qdelay_data(host)
             time_base.add(base)
-            ax.plot(t, ce, label=cc.pretty_name(), color=cc.COLOR, alpha=.9,
+            avg = avg_series(ce, t, 0.2)
+            ax.plot(t, avg, label=cc.pretty_name(), color=cc.COLOR, alpha=.9,
                     linewidth=.3) #, linestyle='dotted')
         ticks = sorted([0, 1])
         ax.set_yticks(ticks)
