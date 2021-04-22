@@ -28,9 +28,9 @@ if [ -f "$HOSTS_BACK" ]; then
 fi
 
 C1_CCA=${C1_CCA:-prague}
-C1_ECN=${C1_ECN:-2}
+C1_ECN=${C1_ECN:-5}
 C2_CCA=${C2_CCA:-cubic}
-C2_ECN=${C2_ECN:-2}
+C2_ECN=${C2_ECN:-5}
 
 declare -A ECN
 ECN[c1]=$C1_ECN

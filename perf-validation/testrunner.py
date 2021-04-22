@@ -97,7 +97,7 @@ class Prague(Cubic):
     NAME = 'prague'
     COLOR = 'blue'
     AQM = AQM_NAME = 'dualpi2'
-    ECN = 3
+    ECN = 5
     PARAMS = {
        # 'rtt_scaling': '1',
        # 'rtt_target': '25000',
