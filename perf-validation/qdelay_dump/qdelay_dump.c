@@ -14,6 +14,7 @@
 
 #define TESTBED_ANALYZER
 typedef uint32_t u32;
+typedef uint8_t u8;
 #include "../modules/numbers.h"
 
 
@@ -29,14 +30,15 @@ static void write_header()
 	fprintf(stdout, "{\"results\":[\n");
 }
 
-static void write_entry(uint64_t ts, u32 delay, u32 drop)
+static void write_entry(uint64_t ts, u32 delay, u32 drop, u8 ce)
 {
 	static int first = 1;
 
 	fprintf(stdout,
 		"%s{\"ts-us\":%lu,"
 		"\"delay-us\":%u,"
-		"\"drop\":%u}\n", first ? "" : ",", ts, delay, drop);
+		"\"drop\":%u,"
+		"\"ce\":%u}\n", first ? "" : ",", ts, delay, drop, ce);
 	first = 0;
 }
 
@@ -55,6 +57,7 @@ static void capture_handler(u_char *user, const struct pcap_pkthdr *h,
 	struct iphdr *ip;
 	uint16_t id;
 	(void)user;
+	uint8_t ce;
 
 	if (h->caplen < CAPLEN)
 		return;
@@ -70,8 +73,9 @@ static void capture_handler(u_char *user, const struct pcap_pkthdr *h,
 	id = ntohs(ip->id);
 	delay = qdelay_decode(id & ((1 << (QDELAY_M + QDELAY_E)) - 1));
 	drops = fl2int(id >> (QDELAY_E + QDELAY_M), DROPS_M, DROPS_E);
+	ce = (ip->tos & 0x3) == 0x3;
 	write_entry((uint64_t)h->ts.tv_usec + (uint64_t)h->ts.tv_sec * US_PER_S,
-		    delay, drops);
+		    delay, drops, ce);
 }
 
 static void _sig_received(int s)
