@@ -326,10 +326,12 @@ class Test(object):
             sys.exit()
         delay = np.empty(len(data['results']))
         t = np.empty(len(data['results']))
+        ce = np.empty(len(data['results']))
         for i, d in enumerate(data['results']):
             delay[i] = d['delay-us'] / 1000.0
             t[i] = float(d['ts-us']) / US_PER_S
-        return t[0], delay, t
+            ce[i] = d['ce']
+        return t[0], delay, t, ce
 
     def process_bw_data(self, client, time_base, suffix=''):
         results = self.DATA_DIR / (
@@ -344,12 +346,15 @@ class Test(object):
             sys.exit()
         throughput = np.empty(len(data['intervals']) + 1)
         t = np.empty(len(data['intervals']) + 1)
+        cwnd = np.empty(len(data['intervals']) + 1)
         throughput[0] = 0
         t[0] = time_base
+        cwnd[0] = 0
         for i, d in enumerate(data['intervals']):
             throughput[i+1] = d['streams'][0]['bits_per_second'] / self.BW_SCALE
             t[i+1] = time_base + d['streams'][0]['end']
-        return throughput, t
+            cwnd[i+1] = d['streams'][0]['snd_cwnd']
+        return throughput, t, cwnd
 
     def plot_qdelay(self, ax):
         ax.set_ylabel('Queue delay [ms]')
@@ -360,11 +365,29 @@ class Test(object):
         time_base = set()
         for host, cc in series:
             log.info('.. qdelay for client=%s', host)
-            base, delay, t = self.process_qdelay_data(host)
+            base, delay, t, ce = self.process_qdelay_data(host)
             time_base.add(base)
             ax.plot(t, delay, label=cc.pretty_name(), color=cc.COLOR, alpha=.9,
                     linewidth=.3) #, linestyle='dotted')
         ticks = sorted([0, 1, 5, 15])
+        ax.set_yticks(ticks)
+        ax.set_yticklabels(ticks)
+        return min(time_base)
+
+    def plot_ce(self, ax):
+        ax.set_ylabel('CE marks')
+
+        series = [('s1', self.cc1)]
+        for i, cc in self.enumerate_cc2():
+            series.append(('s%d' % i, cc))
+        time_base = set()
+        for host, cc in series:
+            log.info('.. ce for client=%s', host)
+            base, delay, t, ce = self.process_qdelay_data(host)
+            time_base.add(base)
+            ax.plot(t, ce, label=cc.pretty_name(), color=cc.COLOR, alpha=.9,
+                    linewidth=.3) #, linestyle='dotted')
+        ticks = sorted([0, 1])
         ax.set_yticks(ticks)
         ax.set_yticklabels(ticks)
         return min(time_base)
@@ -387,9 +410,23 @@ class Test(object):
         for cc, data, name in series:
             log.info('.. bandwidth for client=%s', data)
             color = cc.COLOR
-            bw, t = self.process_bw_data(data, time_base)
+            bw, t, cwnd = self.process_bw_data(data, time_base)
             avg = avg_series(bw, t, 1.0)
             ax.plot(t, avg, label=name,
+                     color=color, alpha=.8, linewidth=1)
+        ax.legend()
+
+    def plot_cwnd(self, ax, time_base):
+        ax.set_ylabel('CWND [bytes]')
+
+        series = [(self.cc1, 'c1', self.legend(self.cc1))]
+        for i, cc in self.enumerate_cc2():
+            series.append((cc, 'c%d' % i, self.legend(cc)))
+        for cc, data, name in series:
+            log.info('.. CWND for client=%s', data)
+            color = cc.COLOR
+            bw, t, cwnd = self.process_bw_data(data, time_base)
+            ax.plot(t, cwnd, label=name,
                      color=color, alpha=.8, linewidth=1)
         ax.legend()
 
@@ -398,12 +435,14 @@ class Test(object):
                  self.cc2_names,
                  self.bw, self.rtt)
 
-        fig, (ax, delay_ax) = plt.subplots(
-            nrows=2, figsize=(10, 6), sharex=True,
-            gridspec_kw={ 'hspace': .1, 'height_ratios': [5, 5], })
+        fig, (ax, delay_ax, ce_ax, cwnd_ax) = plt.subplots(
+            nrows=4, figsize=(10, 12), sharex=True,
+            gridspec_kw={ 'hspace': .1, 'height_ratios': [5, 5, 5, 5], })
 
         time_base = self.plot_qdelay(delay_ax)
         self.plot_bw(ax, time_base)
+        self.plot_ce(ce_ax)
+        self.plot_cwnd(cwnd_ax, time_base)
 
         ax.label_outer()
         delay_ax.label_outer()
