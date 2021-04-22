@@ -128,9 +128,9 @@ def CCAFactory(name=None, color=None, aqm=None, ecn=None, ecnopt=-1, ecnunsafe=-
                 s = "AccECN"
                 if cls.ECNOPT == 0:
                     s += "-noopt"
-                if cls.ECNOPT == 2:
+                elif cls.ECNOPT == 2:
                     s += "-alwaysopt"
-                if cls.ECNOPT == 1:
+                elif cls.ECNOPT == 1:
                     pass
                 else:
                     s = ''
