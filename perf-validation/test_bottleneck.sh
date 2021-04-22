@@ -34,11 +34,14 @@ if [ -f "$HOSTS_BACK" ]; then
 fi
 
 declare -A ECN
+declare -A ECNOPT
 declare -A CCA
 declare -A PAIR_DELAY
 for i in $(seq $HOST_PAIRS); do
     ECN[s$i]=$(eval echo '${'CC${i}_ECN':-0}')
     ECN[c$i]=$(eval echo '${'CC${i}_ECN':-0}')
+    ECNOPT[s$i]=$(eval echo '${'CC${i}_ECNOPT':-1}')
+    ECNOPT[c$i]=$(eval echo '${'CC${i}_ECNOPT':-1}')
     CCA[c$i]=$(eval echo '${'CC${i}_CCA':-prague}')
     CCA[s$i]=$(eval echo '${'CC${i}_CCA':-prague}')
     PAIR_DELAY[$i]=$(eval echo '${'CC${i}_DELAY':-0ms}')
@@ -182,6 +185,7 @@ function set_sysctl()
 {
     ns_exec "$1" sysctl -qw "net.ipv4.tcp_congestion_control=${CCA[$1]}"
     ns_exec "$1" sysctl -qw "net.ipv4.tcp_ecn=${ECN[$1]}"
+    ns_exec "$1" sysctl -qwe "net.ipv4.tcp_ecn_option=${ECNOPT[$1]}"
 }
 
 function gen_suffix()

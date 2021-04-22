@@ -58,6 +58,7 @@ def title_to_md_link(string):
 class CCA(object):
     ALL = {}
     ECN = 0
+    ECNOPT = 1
     EXTRA_RTT = 0
 
     @classmethod
@@ -104,6 +105,7 @@ class Prague(Cubic):
     COLOR = 'blue'
     AQM = AQM_NAME = 'dualpi2'
     ECN = ACCECN_ENABLED_VALUE
+    ECNOPT = 1
     PARAMS = {
        # 'rtt_scaling': '1',
        # 'rtt_target': '25000',
@@ -281,6 +283,7 @@ class Test(object):
             'DELAY': '%gms' % self.rtt,
             'CC1_CCA': self.cc1.NAME,
             'CC1_ECN': str(self.cc1.ECN),
+            'CC1_ECNOPT': str(self.cc1.ECNOPT),
             'CC1_DELAY': '%gms' % self.cc1.EXTRA_RTT,
             'TIME': '%d' % self.DURATION,
             'LOG_PATTERN': self.log_pattern,
@@ -291,6 +294,7 @@ class Test(object):
         for i, cc in self.enumerate_cc2():
             base['CC%d_CCA' % i] = cc.NAME
             base['CC%d_ECN' % i] = str(cc.ECN)
+            base['CC%d_ECNOPT' % i] = str(cc.ECNOPT)
             base['CC%d_DELAY' % i] = '%gms' % cc.EXTRA_RTT
         return base
 
