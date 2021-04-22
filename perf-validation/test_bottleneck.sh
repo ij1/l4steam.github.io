@@ -15,13 +15,13 @@ fi
 
 DATA_DIR=${DATA_DIR:-.}
 
-# {c*}-[br0]-aqm-[br1]-{s*}
+# {c*}-[br0]-<delay-[br2]-aqm-[br1]-{s*}
 HOST_PAIRS=${HOST_PAIRS:-1}
-NETNS=(aqm)
+NETNS=(aqm delay)
 for i in $(seq $HOST_PAIRS); do
      NETNS+=(c$i s$i)
  done
-BRIDGES=(br0 br1)
+BRIDGES=(br0 br1 br2)
 
 HOSTS_BACK="/etc/hosts.back"
 function restore_hosts()
@@ -59,6 +59,7 @@ TIME=${TIME:-10}
 
 BASE_BR0=10.0.1
 BASE_BR1=10.0.2
+BASE_BR2=10.0.3
 BASE_BR10=10.0
 
 declare -A IPADDR
@@ -66,7 +67,9 @@ for i in $(seq $HOST_PAIRS); do
     IPADDR[c${i}-e0]="${BASE_BR0}.${i}"
     IPADDR[s${i}-e0]="${BASE_BR1}.${i}"
 done
-IPADDR[aqm-e0]="${BASE_BR0}.254"
+IPADDR[delay-e0]="${BASE_BR0}.254"
+IPADDR[delay-e2]="${BASE_BR2}.253"
+IPADDR[aqm-e2]="${BASE_BR2}.254"
 IPADDR[aqm-e1]="${BASE_BR1}.254"
 
 DELAY_DUMP=${HERE}/qdelay_dump
@@ -142,8 +145,8 @@ function setup_aqm()
     ns_exec aqm tc qdisc add dev e1 root handle 1: htb default 1 direct_qlen 10000
     ns_exec aqm tc class add dev e1 parent 1: classid 1:1 htb rate "$RATE" ceil "$RATE"
     ns_exec aqm tc qdisc add dev e1 parent 1:1 handle 2: $AQM
-    ns_exec aqm tc qdisc del dev e0 root &> /dev/null || true
-    ns_exec aqm tc qdisc add dev e0 root handle 1: netem delay "$DELAY"
+    ns_exec delay tc qdisc del dev e0 root &> /dev/null || true
+    ns_exec delay tc qdisc add dev e0 root handle 1: netem delay "$DELAY"
 
     for i in $(seq $HOST_PAIRS); do
         _sudo tc qdisc del root dev c$i-e0 &> /dev/null || true
@@ -160,9 +163,17 @@ function setup()
             _sudo ip netns add "$ns"
         fi
         ns_exec "$ns" ip link set dev lo up
-        ns_create_link "$ns" e0
-	# ns_exec "$ns" tc qdisc replace root dev e0 fq
     done
+
+    for i in $(seq $HOST_PAIRS); do
+        ns_create_link "c$i" e0
+        ns_create_link "s$i" e0
+    done
+
+    ns_create_link delay e0
+    ns_create_link delay e2
+    ns_exec delay sysctl -qw net.ipv4.ip_forward=1
+    ns_create_link aqm e2
     ns_create_link aqm e1
     ns_exec aqm sysctl -qw net.ipv4.ip_forward=1
 
@@ -173,12 +184,17 @@ function setup()
         _sudo ip link set dev "$br" up
     done
 
-    bridge_if br0 aqm-e0
+    bridge_if br0 delay-e0
+    bridge_if br2 delay-e2
+    bridge_if br2 aqm-e2
     bridge_if br1 aqm-e1
+    default_gw delay aqm-e2
+    default_gw aqm delay-e2
+
     for i in $(seq $HOST_PAIRS); do
         bridge_if br0 c${i}-e0
         bridge_if br1 s${i}-e0
-        default_gw c${i} aqm-e0
+        default_gw c${i} delay-e0
         default_gw s${i} aqm-e1
     done
     setup_aqm
@@ -241,7 +257,7 @@ function iperf_client()
 
 function update_network()
 {
-    ns_exec aqm tc qdisc change dev e0 root handle 1: netem delay "$DELAY"
+    ns_exec delay tc qdisc change dev e0 root handle 1: netem delay "$DELAY"
     for i in $(seq $HOST_PAIRS); do
         _sudo tc qdisc change dev c$i-e0 root handle 1: netem delay "${PAIR_DELAY[$i]}" 
     done
