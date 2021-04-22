@@ -579,8 +579,10 @@ exit:
 		q->deferred_drops.cnt = 0;
 		q->deferred_drops.len = 0;
 	}
-	testbed_add_metrics(skb, &q->metrics, skb_sojourn_time(skb, now) >> 10,
-			    skb_in_l_queue(skb));
+	if (skb) {
+		testbed_add_metrics(skb, &q->metrics, skb_sojourn_time(skb, now) >> 10,
+				    skb_in_l_queue(skb));
+	}
 	return skb;
 
 drop_and_retry:
