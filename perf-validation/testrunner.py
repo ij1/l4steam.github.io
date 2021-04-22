@@ -79,104 +79,93 @@ class CCA(object):
     def as_json(cls):
         return cls.__name__
 
+def CCAFactory(name=None, color=None, aqm=None, ecn=None, ecnopt=-1, params=None, extra_rtt=0, superklass=CCA):
+    if superklass.__name__ == 'CCA':
+        if name is None:
+            raise ValueError('name required')
+        if color is None:
+            raise ValueError('color required')
+        if aqm is None:
+            raise ValueError('aqm required')
+        if ecn is None:
+            raise ValueError('ecn required')
 
-class Cubic(CCA):
-    NAME = 'cubic'
-    COLOR = 'orange'
-    AQM = 'fq_codel_tst'
-    AQM_NAME = 'codel'
-    ECN = 1
+    class NewCCA(superklass):
+        @classmethod
+        def set_params(cls):
+            for k, w in cls.PARAMS.items():
+                with open('/sys/module/tcp_%s/parameters/%s' % (cls.NAME, k), 'w') as f:
+                    f.write(w)
 
-    @classmethod
-    def configure(cls):
-        return cls
+        @classmethod
+        def configure(cls):
+            cls.set_params()
+            return cls
 
-    @classmethod
-    def pretty_name(cls):
-        return cls.NAME
+        @classmethod
+        def pretty_name(cls):
+            if cls.PARAMS:
+                return '%s (%s)' % (
+                    cls.NAME,
+                    ','.join(('%s=%s' % (k, v) for k, v in cls.PARAMS.items()))
+                )
+            return cls.NAME
 
-    @classmethod
-    def name(cls):
-        return cls.__name__
+        @classmethod
+        def name(cls):
+            return cls.__name__
 
+        @classmethod
+        def ecn_string(cls):
+            if cls.ECN == 1:
+                return "ECN"
+            if cls.ECN == ACCECN_ENABLED_VALUE:
+                if cls.ECNOPT == 0:
+                    return "AccECNnoopt"
+                if cls.ECNOPT == 2:
+                    return "AccECNalwaysopt"
+                if cls.ECNOPT == 1:
+                    return "AccECN"
+            return "ECN%sopt%s" % (cls.ECN, cls.ECNOPT)
 
-class Prague(Cubic):
-    NAME = 'prague'
-    COLOR = 'blue'
-    AQM = AQM_NAME = 'dualpi2'
-    ECN = ACCECN_ENABLED_VALUE
-    ECNOPT = 1
-    PARAMS = {
-       # 'rtt_scaling': '1',
-       # 'rtt_target': '25000',
-       # 'ecn_fallback': '0'
-    }
+        @classmethod
+        def aqm_name(cls):
+            if cls.AQM == 'fq_codel_tst':
+                return 'codel'
+            return cls.AQM
 
-    @classmethod
-    def prague_params(cls):
-        for k, w in cls.PARAMS.items():
-            with open('/sys/module/tcp_prague/parameters/prague_%s' % k,
-                      'w') as f:
-                f.write(w)
-
-    @classmethod
-    def configure(cls):
-        cls.prague_params()
-        return cls
-
-    @classmethod
-    def pretty_name(cls):
-        if cls.PARAMS:
-            return '%s (%s)' % (
-                super().pretty_name(), ','.join(('%s=%s' % (k, v)
-                                                 for k, v in cls.PARAMS.items())))
-        return super().pretty_name()
-
-
-class Prague0d5(Prague):
-    EXTRA_RTT = 0.5
-
-
-class Cubic0d5(Cubic):
-    EXTRA_RTT = 0.5
-
-
-class Prague1(Prague):
-    EXTRA_RTT = 1
-    COLOR = 'magenta'
+        @classmethod
+        def extra_rtt_string(cls):
+            if cls.EXTRA_RTT == 0:
+                return ''
+            return str(cls.EXTRA_RTT).replace('.', 'd')
 
 
-class Cubic1(Cubic):
-    EXTRA_RTT = 1
-    COLOR = 'gold'
+    if name is not None:
+        NewCCA.NAME = name.lower()
+    if color is not None:
+        NewCCA.COLOR = color
+    if aqm is not None:
+        NewCCA.AQM = aqm
+        NewCCA.AQM_NAME = NewCCA.aqm_name()
+    if ecn is not None:
+        NewCCA.ECN = ecn
+    NewCCA.ECNOPT = ecnopt if ecnopt != -1 else 1
+    # E.g., for TCP Prague:
+    # {
+    #     'prague_rtt_scaling': '1',
+    #     'prague_rtt_target': '25000',
+    #     'prague_ecn_fallback': '0'
+    # }
+    NewCCA.PARAMS = params if params is not None else {}
+    if extra_rtt != 0:
+        NewCCA.EXTRA_RTT = extra_rtt
 
+    NewCCA.__name__ = '%s%s%s' % (NewCCA.NAME.capitalize(),
+                                  NewCCA.extra_rtt_string(),
+                                  NewCCA.ecn_string())
 
-class Prague10(Prague):
-    EXTRA_RTT = 10
-    COLOR = 'indigo'
-
-
-class Cubic10(Cubic):
-    EXTRA_RTT = 10
-    COLOR = 'darkgoldenrod'
-
-
-class Prague30(Prague):
-    EXTRA_RTT = 30
-    COLOR = 'cornflowerblue'
-
-
-class Cubic30(Cubic):
-    EXTRA_RTT = 30
-    COLOR = 'tomato'
-
-
-class DCTCP(Cubic):
-    NAME = 'dctcp'
-    COLOR = 'green'
-    AQM = AQM_NAME = 'dualpi2'
-    ECN = 0
-
+    return NewCCA
 
 def avg_series(x, t, period):
     avg = np.empty(len(x))
@@ -207,7 +196,9 @@ class Test(object):
         cls.DATA_DIR = d
         cls.PLOT_SUBDIR = d / 'plots'
 
-    def __init__(self, cc1=Prague, cc2=[], bw=100, rtt=20, env={}, title=''):
+    def __init__(self, cc1=None, cc2=[], bw=100, rtt=20, env={}, title=''):
+        if cc1 is None:
+            raise ValueError('cc1 required')
         self.cc1 = cc1
         self.cc2 = cc2
         self.bw = bw
@@ -506,18 +497,37 @@ CCA for flow (1): {cc1}
 
 def gen_testplan():
     testplan = []
-    # Basic 1 flow test to show sawtooth
+
+    Prague = CCAFactory(name='Prague', color='blue', aqm='dualpi2', ecn=ACCECN_ENABLED_VALUE, ecnopt=1)
+    Cubic = CCAFactory(name='Cubic', color='orange', aqm='fq_codel_tst', ecn=1)
+
+    ccs = []
+    ccs.append(Prague)
+    ccs.append(Cubic)
+    ccs.append(CCAFactory(ecn=5, superklass=Cubic))
     for bw in [20, 100, 500]:
         for rtt in [5, 20, 40, 80]:
-                for cc in (Prague, Cubic):
+                for cc in ccs:
                     testplan.append(Test(cc, bw=bw, rtt=rtt))
+    DCTCP = CCAFactory(name='DCTCP', color='green', aqm='dualpi2', ecn=0, superklass=Cubic)
+
     # Show DCTCP's failures
     testplan.append(Test(DCTCP, bw=100, rtt=20))
+
     # Show RTT dep behavior
-    testplan.append(Test(Prague0d5, cc2=[Prague1, Prague10, Prague30],
-                         bw=400, rtt=0, ))
-    testplan.append(Test(Cubic0d5, cc2=[Cubic1, Cubic10, Cubic30],
-                         bw=400, rtt=0))
+    Prague0d5 = CCAFactory(extra_rtt = 0.5, superklass=Prague)
+    cc2 = []
+    cc2.append(CCAFactory(color='magenta', extra_rtt = 1, superklass=Prague))
+    cc2.append(CCAFactory(color='indigo', extra_rtt = 10, superklass=Prague))
+    cc2.append(CCAFactory(color='cornflowerblue', extra_rtt = 30, superklass=Prague))
+    testplan.append(Test(Prague0d5, cc2=cc2, bw=400, rtt=0, ))
+
+    Cubic0d5 = CCAFactory(extra_rtt = 0.5, superklass=Cubic)
+    cc2 = []
+    cc2.append(CCAFactory(color='gold', extra_rtt = 1, superklass=Cubic))
+    cc2.append(CCAFactory(color='darkgoldenrod', extra_rtt = 10, superklass=Cubic))
+    cc2.append(CCAFactory(color='tomato', extra_rtt = 30, superklass=Cubic))
+    testplan.append(Test(Cubic0d5, cc2=cc2, bw=400, rtt=0))
     # Show co-existence
     testplan.append(Test(Cubic, cc2=[Prague],
                          bw=100, rtt=20))
