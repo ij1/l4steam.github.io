@@ -810,7 +810,7 @@ static void dualpi2_reset_default(struct dualpi2_sched_data *q)
 
 	dualpi2_calculate_c_protection(q->sch, q, 10);	/* wc=10%, wl=90% */
 
-	q->ecn_mask = INET_ECN_CE;
+	q->ecn_mask = INET_ECN_ECT_1;
 	q->coupling_factor = 2;		/* window fairness for equal RTTs */
 	q->drop_overload = true;	/* Preserve latency by dropping */
 	q->drop_early = false;		/* PI2 drops on dequeue */
