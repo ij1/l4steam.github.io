@@ -59,6 +59,7 @@ class CCA(object):
     ALL = {}
     ECN = 0
     ECNOPT = 1
+    ECNUNSAFE = 0
     EXTRA_RTT = 0
 
     @classmethod
@@ -79,7 +80,7 @@ class CCA(object):
     def as_json(cls):
         return cls.__name__
 
-def CCAFactory(name=None, color=None, aqm=None, ecn=None, ecnopt=-1, params=None, extra_rtt=0, superklass=CCA):
+def CCAFactory(name=None, color=None, aqm=None, ecn=None, ecnopt=-1, ecnunsafe=-1, params=None, extra_rtt=0, superklass=CCA):
     if superklass.__name__ == 'CCA':
         if name is None:
             raise ValueError('name required')
@@ -89,6 +90,8 @@ def CCAFactory(name=None, color=None, aqm=None, ecn=None, ecnopt=-1, params=None
             raise ValueError('aqm required')
         if ecn is None:
             raise ValueError('ecn required')
+        if ecnunsafe == -1:
+            ecnunsafe = 1
 
     class NewCCA(superklass):
         @classmethod
@@ -151,6 +154,8 @@ def CCAFactory(name=None, color=None, aqm=None, ecn=None, ecnopt=-1, params=None
     if ecn is not None:
         NewCCA.ECN = ecn
     NewCCA.ECNOPT = ecnopt if ecnopt != -1 else 1
+    if ecnunsafe != -1:
+        NewCCA.ECNUNSAFE = ecnunsafe
     # E.g., for TCP Prague:
     # {
     #     'prague_rtt_scaling': '1',
