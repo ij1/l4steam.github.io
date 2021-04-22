@@ -53,6 +53,7 @@ TIME=${TIME:-10}
 
 BASE_BR0=10.0.1
 BASE_BR1=10.0.2
+BASE_BR10=10.0
 
 declare -A IPADDR
 for i in $(seq $HOST_PAIRS); do
@@ -64,6 +65,7 @@ IPADDR[aqm-e1]="${BASE_BR1}.254"
 
 DELAY_DUMP=${HERE}/qdelay_dump
 DELAY_DUMPER="${DELAY_DUMP}/qdelay_dump"
+TCPDUMP=""
 
 make -C "$DELAY_DUMP"
 
@@ -191,6 +193,19 @@ function gen_suffix()
     fi
 }
 
+function start_tcpdump()
+{
+    local ns=$1
+    shift 1
+    if [ -z "$TCPDUMP" ]; then
+        return 0
+    fi
+    FILTER="ip and src net ${BASE_BR10}.0.0/16"
+    ns_exec_silent "$ns" "$TCPDUMP" "-i" "e0" \
+	"-w" "${DATA_DIR}/dump_$(gen_suffix $ns).dump" \
+	"$FILTER" &
+}
+
 function iperf_server()
 {
     local ns=$1
@@ -232,6 +247,8 @@ function run_test()
     for i in $(seq $HOST_PAIRS); do
         set_sysctl s$i
         set_sysctl c$i
+        start_tcpdump c$i
+        start_tcpdump s$i
         iperf_server s$i ""
     done
     sleep .1
@@ -244,6 +261,9 @@ function run_test()
     sleep $((TIME+5))
     wait $pid_iperf
     $SUDO killall -SIGHUP $(basename "$DELAY_DUMPER")
+    if [ ! -z "$TCPDUMP" ]; then
+        $SUDO killall -SIGTERM $(basename "$TCPDUMP")
+    fi
     sleep .1
     sync
 }
