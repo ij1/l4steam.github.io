@@ -125,13 +125,21 @@ def CCAFactory(name=None, color=None, aqm=None, ecn=None, ecnopt=-1, ecnunsafe=-
             if cls.ECN == 1:
                 return "ECN"
             if cls.ECN == ACCECN_ENABLED_VALUE:
+                s = "AccECN"
                 if cls.ECNOPT == 0:
-                    return "AccECNnoopt"
+                    s += "noopt"
                 if cls.ECNOPT == 2:
-                    return "AccECNalwaysopt"
+                    s += "alwaysopt"
                 if cls.ECNOPT == 1:
-                    return "AccECN"
-            return "ECN%sopt%s" % (cls.ECN, cls.ECNOPT)
+                    pass
+                else:
+                    s = ''
+                if s != '':
+                    if cls.ECNUNSAFE:
+                        s += '-unsafe'
+                    return s
+
+            return "ECN%sopt%s%s" % (cls.ECN, cls.ECNOPT, "-unsafe" if cls.ECNUNSAFE else "")
 
         @classmethod
         def aqm_name(cls):
