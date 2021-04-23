@@ -93,7 +93,7 @@ def CCAFactory(name=None, color=None, aqm=None, ecn=None, ecnopt=-1, ecnunsafe=-
         if ecnopt == -1:
             ecnopt = 1
         if ecnunsafe == -1:
-            ecnunsafe = 1
+            ecnunsafe = 0
 
     class NewCCA(superklass):
         @classmethod
