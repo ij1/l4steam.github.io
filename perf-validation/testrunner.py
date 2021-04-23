@@ -291,6 +291,7 @@ class Test(object):
             'CC1_CCA': self.cc1.NAME,
             'CC1_ECN': str(self.cc1.ECN),
             'CC1_ECNOPT': str(self.cc1.ECNOPT),
+            'CC1_ECNUNSAFE': str(self.cc1.ECNUNSAFE),
             'CC1_DELAY': '%gms' % self.cc1.EXTRA_RTT,
             'TIME': '%d' % self.DURATION,
             'LOG_PATTERN': self.log_pattern,
@@ -302,6 +303,7 @@ class Test(object):
             base['CC%d_CCA' % i] = cc.NAME
             base['CC%d_ECN' % i] = str(cc.ECN)
             base['CC%d_ECNOPT' % i] = str(cc.ECNOPT)
+            base['CC%d_ECNUNSAFE' % i] = str(cc.ECNUNSAFE)
             base['CC%d_DELAY' % i] = '%gms' % cc.EXTRA_RTT
         return base
 
