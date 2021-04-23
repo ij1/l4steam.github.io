@@ -100,7 +100,7 @@ def CCAFactory(name=None, color=None, aqm=None, ecn=None, ecnopt=-1, ecnunsafe=-
         def set_params(cls):
             for k, w in cls.PARAMS.items():
                 with open('/sys/module/tcp_%s/parameters/%s' % (cls.NAME, k), 'w') as f:
-                    f.write(w)
+                    f.write(str(w))
 
         @classmethod
         def configure(cls):
