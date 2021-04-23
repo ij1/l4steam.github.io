@@ -384,7 +384,7 @@ class Test(object):
         return min(time_base)
 
     def plot_ce(self, ax):
-        ax.set_ylabel('CE marks / sec')
+        ax.set_ylabel('CE marks prob')
 
         series = [('s1', self.cc1)]
         for i, cc in self.enumerate_cc2():
