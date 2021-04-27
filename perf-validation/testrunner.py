@@ -342,7 +342,7 @@ class Test(object):
             ce[i] = d['ce']
         return t[0], delay, t, ce
 
-    def process_bw_data(self, client, time_base, suffix=''):
+    def process_bw_data(self, client, time_base, key, suffix='', scale=1):
         results = self.DATA_DIR / (
             'iperf_%s_%s%s.json' % (client, self.env['LOG_PATTERN'],
                                     '_%s' % suffix if suffix else ''))
@@ -353,17 +353,14 @@ class Test(object):
             log.exception("Could not load the bandwidth results for client '%s'",
                           client)
             sys.exit()
-        throughput = np.empty(len(data['intervals']) + 1)
+        vals = np.empty(len(data['intervals']) + 1)
         t = np.empty(len(data['intervals']) + 1)
-        cwnd = np.empty(len(data['intervals']) + 1)
-        throughput[0] = 0
+        vals[0] = 0
         t[0] = time_base
-        cwnd[0] = 0
         for i, d in enumerate(data['intervals']):
-            throughput[i+1] = d['streams'][0]['bits_per_second'] / self.BW_SCALE
+            vals[i+1] = d['streams'][0][key] * scale
             t[i+1] = time_base + d['streams'][0]['end']
-            cwnd[i+1] = d['streams'][0]['snd_cwnd']
-        return throughput, t, cwnd
+        return vals, t
 
     def plot_qdelay(self, ax):
         ax.set_ylabel('Queue delay [ms]')
@@ -384,7 +381,8 @@ class Test(object):
         return min(time_base)
 
     def plot_ce(self, ax):
-        ax.set_ylabel('CE marks prob')
+        ax.set_ylabel('CE prob')
+        ax.set_ylim(0, 1)
 
         series = [('s1', self.cc1)]
         for i, cc in self.enumerate_cc2():
@@ -397,9 +395,6 @@ class Test(object):
             avg = avg_series(ce, t, 0.2)
             ax.plot(t, avg, label=cc.pretty_name(), color=cc.COLOR, alpha=.9,
                     linewidth=.3) #, linestyle='dotted')
-        ticks = sorted([0, 1])
-        ax.set_yticks(ticks)
-        ax.set_yticklabels(ticks)
         return min(time_base)
 
     def legend(self, cc):
@@ -420,7 +415,7 @@ class Test(object):
         for cc, data, name in series:
             log.info('.. bandwidth for client=%s', data)
             color = cc.COLOR
-            bw, t, cwnd = self.process_bw_data(data, time_base)
+            bw, t = self.process_bw_data(data, time_base, 'bits_per_second', scale=1/self.BW_SCALE)
             avg = avg_series(bw, t, 1.0)
             ax.plot(t, avg, label=name,
                      color=color, alpha=.8, linewidth=1)
@@ -435,8 +430,22 @@ class Test(object):
         for cc, data, name in series:
             log.info('.. CWND for client=%s', data)
             color = cc.COLOR
-            bw, t, cwnd = self.process_bw_data(data, time_base)
+            cwnd, t = self.process_bw_data(data, time_base, 'snd_cwnd')
             ax.plot(t, cwnd, label=name,
+                     color=color, alpha=.8, linewidth=1)
+        ax.legend()
+
+    def plot_rtt(self, ax, time_base):
+        ax.set_ylabel('RTT')
+
+        series = [(self.cc1, 'c1', self.legend(self.cc1))]
+        for i, cc in self.enumerate_cc2():
+            series.append((cc, 'c%d' % i, self.legend(cc)))
+        for cc, data, name in series:
+            log.info('.. CWND for client=%s', data)
+            color = cc.COLOR
+            rtt, t = self.process_bw_data(data, time_base, 'rtt')
+            ax.plot(t, rtt, label=name,
                      color=color, alpha=.8, linewidth=1)
         ax.legend()
 
@@ -445,23 +454,23 @@ class Test(object):
                  self.cc2_names,
                  self.bw, self.rtt)
 
-        fig, (ax, delay_ax, ce_ax, cwnd_ax) = plt.subplots(
+        fig, (ax0, ax1, ax2, ax3) = plt.subplots(
             nrows=4, figsize=(10, 12), sharex=True,
             gridspec_kw={ 'hspace': .1, 'height_ratios': [5, 5, 5, 5], })
 
-        time_base = self.plot_qdelay(delay_ax)
-        self.plot_bw(ax, time_base)
-        self.plot_ce(ce_ax)
-        self.plot_cwnd(cwnd_ax, time_base)
+        time_base = self.plot_qdelay(ax1)
+        self.plot_bw(ax0, time_base)
+        self.plot_ce(ax2)
+#        self.plot_rtt(ax2, time_base)
+        self.plot_cwnd(ax3, time_base)
 
-        ax.label_outer()
-        delay_ax.label_outer()
-        delay_ax.set_xlabel('Time [s]')
-        ax.set_xlim(time_base, time_base + self.DURATION)
-        delay_ax.set_xlim(time_base, time_base + self.DURATION)
+        ax3.set_xlabel('Time [s]')
         ticks = [i * self.DURATION / 8 for i in range(9)]
-        delay_ax.set_xticks([time_base + t for t in ticks])
-        delay_ax.set_xticklabels([str(t) for t in ticks])
+        for ax in (ax0, ax1, ax2, ax3):
+            ax.label_outer()
+            ax.set_xlim(time_base, time_base + self.DURATION)
+            ax.set_xticks([time_base + t for t in ticks])
+        ax3.set_xticklabels([str(t) for t in ticks])
         if self.title:
             fig.suptitle(self.title)
 
