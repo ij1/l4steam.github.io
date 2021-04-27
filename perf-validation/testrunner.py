@@ -153,6 +153,15 @@ def CCAFactory(name=None, color=None, aqm=None, ecn=None, ecnopt=-1, ecnunsafe=-
                 return ''
             return str(cls.EXTRA_RTT).replace('.', 'd')
 
+        @classmethod
+        def params_string(cls):
+            s = ''
+            for k in sorted(cls.PARAMS.keys()):
+                l = k
+                if k.startswith(cls.NAME):
+                    l = k[len(cls.NAME):].lstrip('-_')
+                s += '-%s%s' % (l, cls.PARAMS[k])
+            return s
 
     if name is not None:
         NewCCA.NAME = name.lower()
@@ -177,9 +186,10 @@ def CCAFactory(name=None, color=None, aqm=None, ecn=None, ecnopt=-1, ecnunsafe=-
     if extra_rtt != 0:
         NewCCA.EXTRA_RTT = extra_rtt
 
-    NewCCA.__name__ = '%s%s%s' % (NewCCA.NAME.capitalize(),
-                                  NewCCA.extra_rtt_string(),
-                                  NewCCA.ecn_string())
+    NewCCA.__name__ = '%s%s%s%s' % (NewCCA.NAME.capitalize(),
+                                    NewCCA.params_string(),
+                                    NewCCA.extra_rtt_string(),
+                                    NewCCA.ecn_string())
 
     return NewCCA
 
