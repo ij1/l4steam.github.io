@@ -454,7 +454,7 @@ class Test(object):
         for cc, data, name in series:
             log.info('.. CWND for client=%s', data)
             color = cc.COLOR
-            rtt, t = self.process_bw_data(data, time_base, 'rtt')
+            rtt, t = self.process_bw_data(data, time_base, 'rtt', scale=0.001)
             ax.plot(t, rtt, label=name,
                      color=color, alpha=.8, linewidth=1)
         ax.legend()
