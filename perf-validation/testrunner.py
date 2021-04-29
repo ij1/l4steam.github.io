@@ -550,7 +550,7 @@ def gen_testplan():
         for rtt in [5, 20, 40, 80]:
                 for cc in ccs:
                     testplan.append(Test(cc, bw=bw, rtt=rtt))
-    DCTCP = CCAFactory(name='DCTCP', color='green', aqm='dualpi2', ecn=0, superklass=Cubic)
+    DCTCP = CCAFactory(name='DCTCP', color='green', aqm='dualpi2', ecn=ACCECN_ENABLED_VALUE, ecnopt=1, superklass=Cubic)
 
     # Show DCTCP's failures
     testplan.append(Test(DCTCP, bw=100, rtt=20))
