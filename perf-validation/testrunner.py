@@ -122,6 +122,8 @@ def CCAFactory(name=None, color=None, aqm=None, ecn=None, ecnopt=-1, ecnunsafe=-
 
         @classmethod
         def ecn_string(cls):
+            if cls.ECN == 0:
+                return ""
             if cls.ECN == 1:
                 return "ECN"
             if cls.ECN == ACCECN_ENABLED_VALUE:
