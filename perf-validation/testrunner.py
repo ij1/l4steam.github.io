@@ -574,7 +574,6 @@ def gen_testplan():
     # Show co-existence
     testplan.append(Test(Cubic, cc2=[Prague],
                          bw=100, rtt=20))
-    Cubic.ECN = 0  # work around for our statically forced any_ect on dualpi2
     testplan.append(Test(Prague, cc2=[Cubic],
                          bw=100, rtt=20))
     Test.save_config(testplan)
