@@ -10,7 +10,7 @@ void free_packets(struct flow *fl)
 	while (fl->pkt != NULL) {
 		pkt = fl->pkt->next;
 		free(fl->pkt);
-		fl->pkt = pkt->next;
+		fl->pkt = pkt;
 	}
 	fl->pkt_count = 0;
 }
