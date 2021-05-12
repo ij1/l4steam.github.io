@@ -6,6 +6,9 @@
 #include <string.h>
 
 #include <unistd.h>
+#include <fcntl.h>
+#include <sys/select.h>
+#include <sys/time.h>
 
 #include <netinet/in.h>
 #include <netinet/ip.h>
@@ -88,6 +91,8 @@ struct flow *get_flow(struct packet *pkt)
 			fl->dport = pkt->tcp->dest;
 			fl->pkt = NULL;
 			fl->pkt_count = 0;
+			fl->timeout.tv_sec = 0;
+			fl->timeout.tv_usec = 0;
 
 			flow_hash[flow_idx] = fl;
 			break;
@@ -120,15 +125,68 @@ void handle_packet(struct packet *pkt)
 	fl->pkt = pkt;
 	fl->pkt_count++;
 
-	strategy(fl);
+	strategy(fl, false);
 }
 
 int packet_loop(int tunfd)
 {
 	struct packet *pkt;
 	ssize_t len;
+	fd_set fdset, exceptset;
+	int res;
+	struct timeval tv;
+	struct timeval *tvptr;
+	struct event *e;
 
 	while (1) {
+		FD_ZERO(&fdset);
+		FD_ZERO(&exceptset);
+		FD_SET(tunfd, &fdset);
+		FD_SET(tunfd, &exceptset);
+
+		e = get_next_event();
+		if (e != NULL) {
+			if (gettimeofday(&tv, NULL)) {
+				perror("gettimeofday");
+				exit(-1);
+			}
+			tv.tv_sec = e->fl->timeout.tv_sec - tv.tv_sec;
+			tv.tv_usec = e->fl->timeout.tv_usec - tv.tv_usec;
+			if (tv.tv_usec < 0) {
+				tv.tv_usec += USECS_IN_SEC;
+				tv.tv_sec--;
+			}
+			if (tv.tv_sec < 0) {
+				tv.tv_sec = 0;
+				tv.tv_usec = 0;
+			}
+			tvptr = &tv;
+		} else {
+			tvptr = NULL;
+		}
+
+		res = select(tunfd + 1, &fdset, NULL, &exceptset, tvptr);
+		if (res < 0) {
+			perror("select");
+			exit(1);
+		}
+
+		if (e != NULL) {
+			if (gettimeofday(&tv, NULL)) {
+				perror("gettimeofday");
+				exit(-1);
+			}
+			if (e->fl->timeout.tv_sec < tv.tv_sec ||
+			    (e->fl->timeout.tv_sec == tv.tv_sec &&
+			     e->fl->timeout.tv_usec < tv.tv_usec)) {
+				strategy(e->fl, true);
+			}
+		}
+
+		if (!FD_ISSET(tunfd, &fdset)) {
+			continue;
+		}
+
 		pkt = malloc(sizeof(*pkt) + PKT_SIZE);
 		len = read(tunfd, &(pkt->data), PKT_SIZE);
 		if (len < 0) {
@@ -165,6 +223,7 @@ int packet_loop(int tunfd)
 int main(int argc, char **argv)
 {
 	int tunfd;
+	int flags;
 
 	flow_hash = calloc(FLOW_HASH_SIZE, sizeof(struct flow *));
 	if (flow_hash == NULL) {
@@ -176,6 +235,15 @@ int main(int argc, char **argv)
 	options(argc, argv);
 	tunfd = create_tun(tundevname);
 	pipefd = get_pipe(PIPE_NAME);
+
+	if ((flags = fcntl(tunfd, F_GETFL, 0)) < 0) {
+		perror("fcntl read");
+		exit(-1);
+	}
+	if (fcntl(tunfd, F_SETFL, flags | O_NONBLOCK)) {
+		perror("fcntl write");
+		exit(-1);
+	}
 	
 	packet_loop(tunfd);
 

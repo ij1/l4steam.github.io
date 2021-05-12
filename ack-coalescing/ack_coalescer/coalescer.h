@@ -1,7 +1,10 @@
 #ifndef COALESCER_H
 #define COALESCER_H
 
+#include <stdbool.h>
+
 #include <linux/types.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 struct packet {
@@ -23,10 +26,19 @@ struct flow {
 
         struct packet *pkt;
         unsigned int pkt_count;
+        struct timeval timeout;
 };
 
-typedef void (*strategy_func)(struct flow *fl);
+typedef void (*strategy_func)(struct flow *fl, bool timeout);
 strategy_func get_strategy(char *strategy);
 
+struct event {
+        struct flow *fl;
+        struct event *next;
+};
+
+struct event *get_next_event();
+
+#define USECS_IN_SEC 1000000
 
 #endif
