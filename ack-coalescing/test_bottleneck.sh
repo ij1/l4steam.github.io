@@ -261,6 +261,15 @@ function start_tcpdump()
 	"$FILTER" &
 }
 
+function post_tcpdump()
+{
+    local ns=$1
+    if [ -z "$TCPDUMP" ]; then
+        return 0
+    fi
+    _sudo bzip2 -9 -f "${DATA_DIR}/dump_$(gen_suffix $ns).dump"
+}
+
 function iperf_server()
 {
     local ns=$1
@@ -320,6 +329,11 @@ function run_test()
         $SUDO killall -SIGTERM $(basename "$TCPDUMP")
     fi
     sleep .1
+    for i in $(seq $HOST_PAIRS); do
+        post_tcpdump c$i
+        post_tcpdump s$i
+    done
+
     sync
 }
 
