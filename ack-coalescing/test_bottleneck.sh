@@ -147,7 +147,7 @@ function default_gw()
 
 function gw_dev()
 {
-    ns_exec "$1" ip link set dev tun0 up
+    ns_exec "$1" ip link set dev "$3" up
     ns_exec "$1" ip route add "$2" dev "$3"
 }
 
