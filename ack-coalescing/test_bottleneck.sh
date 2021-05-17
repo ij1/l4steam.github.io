@@ -160,7 +160,8 @@ function ack_coalescer()
 
     echo "[$ns] $ACK_COALESCER -i tun0 -s $ACK_STRATEGY"
     ns_exec_silent "$ns" $ACK_COALESCER -i tun0 -s "$ACK_STRATEGY" \
-      -p "$ACK_STRATEGY_INITPERIODPACKETS" &
+      -p "$ACK_STRATEGY_INITPERIODPACKETS" \
+      > "${DATA_DIR}/coalescer_$(gen_suffix 'ack').txt" 2>&1 &
     echo "[$ns] $ACK_FORWARDER -i tun0"
     ns_exec_silent "$nsforward" $ACK_FORWARDER -i tun0 &
 
