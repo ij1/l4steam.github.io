@@ -79,7 +79,6 @@ void free_packets(struct flow *fl)
 void immediate(struct flow *fl, bool timeout)
 {
 	send_packet(fl->pkt);
-	free(fl->pkt);
 	free_packets(fl);
 }
 
