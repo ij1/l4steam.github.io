@@ -555,9 +555,9 @@ def gen_testplan():
 
     ccs = (Prague, DCTCP, DCTCPAccECN)
 
-    for bw in [20]:
-        for rtt in [40]:
-            for strategy in ('immediate', 'halfdrop'):
+    for bw in [20, 100]:
+        for rtt in [80]:
+            for strategy in ('immediate', 'halfdrop', 'reqgrant',):
                 for cc in ccs:
                     testplan.append(Test(cc, bw=bw, rtt=rtt, ack_strategy=strategy))
     Test.save_config(testplan)
