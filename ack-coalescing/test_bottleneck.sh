@@ -51,6 +51,7 @@ for i in $(seq $HOST_PAIRS); do
 done
 
 ACK_STRATEGY=${ACK_STRATEGY:-immediate}
+ACK_STRATEGY_INITPERIODPACKETS=${ACK_STRATEGY_INITPERIODPACKETS:-0}
 RATE=${RATE:-100Mbit}
 DELAY=${DELAY:-0ms}
 AQM=${AQM:-dualpi2}
@@ -158,7 +159,8 @@ function ack_coalescer()
     shift 2
 
     echo "[$ns] $ACK_COALESCER -i tun0 -s $ACK_STRATEGY"
-    ns_exec_silent "$ns" $ACK_COALESCER -i tun0 -s "$ACK_STRATEGY" &
+    ns_exec_silent "$ns" $ACK_COALESCER -i tun0 -s "$ACK_STRATEGY" \
+      -p "$ACK_STRATEGY_INITPERIODPACKETS" &
     echo "[$ns] $ACK_FORWARDER -i tun0"
     ns_exec_silent "$nsforward" $ACK_FORWARDER -i tun0 &
 

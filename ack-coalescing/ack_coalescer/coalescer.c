@@ -25,12 +25,13 @@ int pipefd = -1;
 
 char *tundevname = "tun0";
 strategy_func strategy = NULL;
+long long init_period_packets = 0;
 
 void options(int argc, char **argv)
 {
 	int opt;
 
-	while ((opt = getopt(argc, argv, "i:s:")) != -1) {
+	while ((opt = getopt(argc, argv, "i:p:s:")) != -1) {
 		switch (opt) {
 			case 'i':
 				tundevname = optarg;
@@ -41,6 +42,9 @@ void options(int argc, char **argv)
 					fprintf(stderr, "Invalid strategy: %s\n", optarg);
 					exit(-1);
 				}
+				break;
+			case 'p':
+				init_period_packets = atoll(optarg);
 				break;
 			default:
 				fprintf(stderr, "Usage: %s -i iface\n", argv[0]);

@@ -7,6 +7,8 @@
 
 static struct event event_q = { .fl = NULL, .next = NULL };
 
+static long long packet_count = 0;
+
 void add_event_for_flow(struct flow *fl)
 {
 	struct event *ep = &event_q;
@@ -83,7 +85,8 @@ void immediate(struct flow *fl, bool timeout)
 
 void halfdrop(struct flow *fl, bool timeout)
 {
-	if (fl->pkt_count < 2)
+	packet_count++;
+	if (packet_count > init_period_packets && fl->pkt_count < 2)
 		return;
 	send_packet(fl->pkt);
 	free_packets(fl);
@@ -100,6 +103,13 @@ void ackreqgrant(struct flow *fl, bool timeout)
 
 		fl->timeout.tv_usec = 0;
 		fl->timeout.tv_sec = 0;
+		return;
+	}
+
+	packet_count++;
+	if (packet_count < init_period_packets) {
+		send_packet(fl->pkt);
+		free_packets(fl);
 		return;
 	}
 

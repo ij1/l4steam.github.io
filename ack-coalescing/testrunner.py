@@ -13,6 +13,7 @@ import subprocess as sp
 import sys
 import time
 import platform
+import math
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -217,6 +218,7 @@ class Test(object):
     BW_SCALE = 1_000_000  # Mb
     AQM = 'dualpi2'
     DURATION = 40  # s
+    MTU = 1500
     _CFG = "test_cfg.json"
 
     @classmethod
@@ -299,11 +301,14 @@ class Test(object):
             cc.configure()
 
     def build_env(self, env):
+        initperiodpackets = self.bw * self.rtt * 1000.0 / self.MTU * 4
+        initperiodpackets = int(math.ceil(initperiodpackets))
         base = {
             'AQM': self.cc1.AQM,
             'RATE': '%dMbit' % self.bw,
             'DELAY': '%gms' % self.rtt,
             'ACK_STRATEGY': self.ack_strategy,
+            'ACK_COALESCER_INITPERIODPACKETS': str(initperiodpackets),
             'CC1_CCA': self.cc1.NAME,
             'CC1_ECN': str(self.cc1.ECN),
             'CC1_ECNOPT': str(self.cc1.ECNOPT),
