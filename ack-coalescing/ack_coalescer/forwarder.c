@@ -46,7 +46,7 @@ int packet_loop(int tunfd, int pipefd)
 		}
 		len = write(tunfd, &buf, len);
 		if (len < sender_len) {
-			perror("partial packet write");
+			perror("partial tun write");
 			exit(-1);
 		}
 	}
