@@ -81,7 +81,7 @@ class CCA(object):
     def as_json(cls):
         return cls.__name__
 
-def CCAFactory(name=None, color=None, aqm=None, ecn=None, ecnopt=-1, ecnunsafe=-1, params=None, extra_rtt=0, superklass=CCA):
+def CCAFactory(name=None, color=None, aqm=None, ecn=None, ecnopt=-1, ecnunsafe=-1, params=None, extra_rtt=0, ack_strategy=None, superklass=CCA):
     if superklass.__name__ == 'CCA':
         if name is None:
             raise ValueError('name required')
@@ -95,6 +95,8 @@ def CCAFactory(name=None, color=None, aqm=None, ecn=None, ecnopt=-1, ecnunsafe=-
             ecnopt = 1
         if ecnunsafe == -1:
             ecnunsafe = 0
+        if ack_strategy is None:
+            ack_strategy = 'immediate'
 
     class NewCCA(superklass):
         @classmethod
@@ -179,6 +181,8 @@ def CCAFactory(name=None, color=None, aqm=None, ecn=None, ecnopt=-1, ecnunsafe=-
         NewCCA.ECNOPT = ecnopt
     if ecnunsafe != -1:
         NewCCA.ECNUNSAFE = ecnunsafe
+    if ack_strategy is not None:
+        NewCCA.ACK_STRATEGY = ack_strategy
     # E.g., for TCP Prague:
     # {
     #     'prague_rtt_scaling': '1',
@@ -189,10 +193,11 @@ def CCAFactory(name=None, color=None, aqm=None, ecn=None, ecnopt=-1, ecnunsafe=-
     if extra_rtt != 0:
         NewCCA.EXTRA_RTT = extra_rtt
 
-    NewCCA.__name__ = '%s%s%s%s' % (NewCCA.NAME.capitalize(),
+    NewCCA.__name__ = '%s%s%s%sack%s' % (NewCCA.NAME.capitalize(),
                                     NewCCA.params_string(),
                                     NewCCA.extra_rtt_string(),
-                                    NewCCA.ecn_string())
+                                    NewCCA.ecn_string(),
+                                    NewCCA.ACK_STRATEGY)
 
     return NewCCA
 
@@ -226,14 +231,13 @@ class Test(object):
         cls.DATA_DIR = d
         cls.PLOT_SUBDIR = d / 'plots'
 
-    def __init__(self, cc1=None, cc2=[], bw=100, rtt=20, ack_strategy='immediate', env={}, title=''):
+    def __init__(self, cc1=None, cc2=[], bw=100, rtt=20, env={}, title=''):
         if cc1 is None:
             raise ValueError('cc1 required')
         self.cc1 = cc1
         self.cc2 = cc2
         self.bw = bw
         self.rtt = rtt
-        self.ack_strategy = ack_strategy
         self.env = self.build_env(env)
         self.title = title
         os.makedirs(self.PLOT_SUBDIR, exist_ok=True)
@@ -254,8 +258,7 @@ class Test(object):
     def as_json(self):
         return dict(test_type=self.__class__.__name__,
                     env=self.env, cc1=self.cc1.as_json(), title=self.title,
-                    cc2=[cc.as_json() for cc in self.cc2], bw=self.bw, rtt=self.rtt,
-                    ack_strategy=self.ack_strategy)
+                    cc2=[cc.as_json() for cc in self.cc2], bw=self.bw, rtt=self.rtt)
 
     def enumerate_cc2(self):
         for i, cc in enumerate(self.cc2):
@@ -270,7 +273,6 @@ class Test(object):
     def args_from_json(cls, j):
         return dict(cc1=CCA.get(j['cc1']), cc2=[CCA.get(cc) for cc in j['cc2']],
                     bw=j.get('bw',100), rtt=j.get('rtt',20),
-                    ack_strategy=j.get('ack_strategy', 'immediate'),
                     title=j.get('title',''), env=j['env'])
 
     @classmethod
@@ -307,13 +309,13 @@ class Test(object):
             'AQM': self.cc1.AQM,
             'RATE': '%dMbit' % self.bw,
             'DELAY': '%gms' % self.rtt,
-            'ACK_STRATEGY': self.ack_strategy,
-            'ACK_COALESCER_INITPERIODPACKETS': str(initperiodpackets),
             'CC1_CCA': self.cc1.NAME,
             'CC1_ECN': str(self.cc1.ECN),
             'CC1_ECNOPT': str(self.cc1.ECNOPT),
             'CC1_ECNUNSAFE': str(self.cc1.ECNUNSAFE),
             'CC1_DELAY': '%gms' % self.cc1.EXTRA_RTT,
+            'CC1_ACK_STRATEGY': self.cc1.ACK_STRATEGY,
+            'CC1_ACK_STRATEGY_INITPERIODPACKETS': str(initperiodpackets),
             'TIME': '%d' % self.DURATION,
             'LOG_PATTERN': self.log_pattern,
             'DATA_DIR': str(self.DATA_DIR),
@@ -326,6 +328,8 @@ class Test(object):
             base['CC%d_ECNOPT' % i] = str(cc.ECNOPT)
             base['CC%d_ECNUNSAFE' % i] = str(cc.ECNUNSAFE)
             base['CC%d_DELAY' % i] = '%gms' % cc.EXTRA_RTT
+            base['CC%d_ACK_STRATEGY' % i] = cc.ACK_STRATEGY
+            base['CC%d_ACK_STRATEGY_INITPERIODPACKETS' % i] = str(initperiodpackets)
         return base
 
     def run_test(self):
@@ -340,9 +344,9 @@ class Test(object):
 
     @property
     def log_pattern(self):
-        return '%s_%s_%s_%s_ack%s'% (self.cc1.__name__,
+        return '%s_%s_%s_%s'% (self.cc1.__name__,
                             '_'.join(cc.__name__ for cc in self.cc2),
-                            self.bw, self.rtt, self.ack_strategy)
+                            self.bw, self.rtt)
 
     def process_qdelay_data(self, host):
         results = self.DATA_DIR / ('qdelay_%s_%s.qdelay' % (
@@ -420,11 +424,11 @@ class Test(object):
         return min(time_base)
 
     def legend(self, cc):
-        return '%s%s@%dMbps/%gms/%s/ack%s' % (cc.pretty_name(),
+        return '%s%s/ack%s@%dMbps/%gms/%s' % (cc.pretty_name(),
                                               cc.ecn_string(),
+                                              cc.ACK_STRATEGY,
                                               self.bw, self.rtt + cc.EXTRA_RTT,
-                                              self.cc1.AQM_NAME,
-                                              self.ack_strategy)
+                                              self.cc1.AQM_NAME)
 
     def plot_bw(self, ax, time_base):
         ax.set_ylabel('Throughput [Mbps]')
@@ -553,13 +557,18 @@ def gen_testplan():
     DCTCP = CCAFactory(name='DCTCP', color='green', aqm='dualpi2', ecn=1, ecnopt=1)
     DCTCPAccECN = CCAFactory(name='DCTCP', color='green', aqm='dualpi2', ecn=ACCECN_ENABLED_VALUE, ecnopt=1)
 
-    ccs = (Prague, DCTCP, DCTCPAccECN)
+    # cc, 2nd cc color
+    ccs = ((Prague, 'magenta'),
+           (DCTCP, 'greenyellow'),
+           (DCTCPAccECN, 'greenyellow'))
 
     for bw in [20, 100]:
+#    for bw in [20]:
         for rtt in [80]:
             for strategy in ('immediate', 'halfdrop', 'reqgrant',):
-                for cc in ccs:
-                    testplan.append(Test(cc, bw=bw, rtt=rtt, ack_strategy=strategy))
+                for cc, col in ccs:
+                    cc2 = CCAFactory(ack_strategy=strategy, color=col, superklass=cc)
+                    testplan.append(Test(cc, cc2=[cc2], bw=bw, rtt=rtt))
     Test.save_config(testplan)
     return testplan
 

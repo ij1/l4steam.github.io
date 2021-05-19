@@ -38,6 +38,8 @@ declare -A ECNOPT
 declare -A ECNUNSAFE
 declare -A CCA
 declare -A PAIR_DELAY
+declare -A ACK_STRATEGY
+declare -A ACK_STRATEGY_INITPERIODPACKETS
 for i in $(seq $HOST_PAIRS); do
     ECN[s$i]=$(eval echo '${'CC${i}_ECN':-0}')
     ECN[c$i]=$(eval echo '${'CC${i}_ECN':-0}')
@@ -48,10 +50,10 @@ for i in $(seq $HOST_PAIRS); do
     CCA[c$i]=$(eval echo '${'CC${i}_CCA':-prague}')
     CCA[s$i]=$(eval echo '${'CC${i}_CCA':-prague}')
     PAIR_DELAY[$i]=$(eval echo '${'CC${i}_DELAY':-0ms}')
+    ACK_STRATEGY[$i]=$(eval echo '${'CC${i}_ACK_STRATEGY':-immediate}')
+    ACK_STRATEGY_INITPERIODPACKETS[$i]=$(eval echo '${'CC${i}_ACK_STRATEGY_INITPERIODPACKETS':-0}')
 done
 
-ACK_STRATEGY=${ACK_STRATEGY:-immediate}
-ACK_STRATEGY_INITPERIODPACKETS=${ACK_STRATEGY_INITPERIODPACKETS:-0}
 RATE=${RATE:-100Mbit}
 DELAY=${DELAY:-0ms}
 AQM=${AQM:-dualpi2}
@@ -154,22 +156,27 @@ function gw_dev()
 function ack_coalescer()
 {
     local ns=$1
-    local tgt="$2.0/24"
+    local clientid=$2
     local nsforward=$3
-    shift 2
 
-    echo "[$ns] $ACK_COALESCER -i tun0 -s $ACK_STRATEGY"
-    ns_exec_silent "$ns" $ACK_COALESCER -i tun0 -s "$ACK_STRATEGY" \
-      -p "$ACK_STRATEGY_INITPERIODPACKETS" \
-      > "${DATA_DIR}/coalescer_$(gen_suffix 'ack').txt" 2>&1 &
-    echo "[$ns] $ACK_FORWARDER -i tun0"
-    ns_exec_silent "$nsforward" $ACK_FORWARDER -i tun0 &
+    local tunid="tun${clientid}"
+    local key="c${clientid}-e0"
+    local tgt="${IPADDR[$key]}"
+
+    echo "[$ns] $ACK_COALESCER -i "$tunid" -s ${ACK_STRATEGY[$clientid]} -p ${ACK_STRATEGY_INITPERIODPACKETS[$clientid]}"
+    ns_exec_silent "$ns" $ACK_COALESCER -i "$tunid" \
+      -s "${ACK_STRATEGY[$clientid]}" \
+      -p "${ACK_STRATEGY_INITPERIODPACKETS[$clientid]}" \
+      > "${DATA_DIR}/coalescer_$(gen_suffix "c${clientid}").coal" 2>&1 &
+    echo "[$ns] $ACK_FORWARDER -i $tunid"
+    ns_exec_silent "$nsforward" $ACK_FORWARDER -i "$tunid" \
+      > "${DATA_DIR}/coalescer_$(gen_suffix "c${clientid}").fwd" 2>&1 &
 
     sleep 0.1
-    ns_exec "$ns" sysctl -qw "net.ipv6.conf.tun0.disable_ipv6=1"
-    ns_exec "$nsforward" sysctl -qw "net.ipv6.conf.tun0.disable_ipv6=1"
-    ns_exec "$nsforward" ip link set dev tun0 up
-    gw_dev "$ns" "$tgt" tun0
+    ns_exec "$ns" sysctl -qw "net.ipv6.conf.${tunid}.disable_ipv6=1"
+    ns_exec "$nsforward" sysctl -qw "net.ipv6.conf.${tunid}.disable_ipv6=1"
+    ns_exec "$nsforward" ip link set dev "${tunid}" up
+    gw_dev "$ns" "$tgt" "${tunid}"
 }
 
 function setup_aqm()
@@ -223,11 +230,11 @@ function setup()
     bridge_if br1 aqm-e1
     default_gw delay aqm-e2
     default_gw aqm delay-e2
-    ack_coalescer aqm "${BASE_BR0}" delay
 
     for i in $(seq $HOST_PAIRS); do
         bridge_if br0 c${i}-e0
         bridge_if br1 s${i}-e0
+        ack_coalescer aqm "$i" delay
         default_gw c${i} delay-e0
         default_gw s${i} aqm-e1
     done
