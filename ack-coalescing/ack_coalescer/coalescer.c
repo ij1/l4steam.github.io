@@ -238,7 +238,7 @@ int main(int argc, char **argv)
 
 	options(argc, argv);
 	tunfd = create_tun(tundevname);
-	pipefd = get_pipe(PIPE_NAME);
+	pipefd = get_pipe(PIPE_NAME, tundevname);
 
 	if ((flags = fcntl(tunfd, F_GETFL, 0)) < 0) {
 		perror("fcntl read");

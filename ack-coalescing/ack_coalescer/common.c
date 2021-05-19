@@ -40,22 +40,33 @@ int create_tun(char *tundevname)
 	return tunfd;
 }
 
-int get_pipe(char *name)
+int get_pipe(char *name, char *tundevname)
 {
 	int fd;
 	int res;
+	char *pipename;
+	int maxnamelen = strlen(PIPE_NAME) + IFNAMSIZ;
 
-	res = mkfifo(name, 0600);
+	pipename = malloc(maxnamelen);
+	if (pipename == NULL) {
+		fprintf(stderr, "pipename malloc failed\n");
+		exit(-1);
+	}
+	snprintf(pipename, maxnamelen - 1, PIPE_NAME, tundevname);
+
+	res = mkfifo(pipename, 0600);
 	if (res < 0 && errno != EEXIST) {
 		perror("mkfifo");
 		exit(-1);
 	}
 
-	fd = open(name, O_RDWR);
+	fd = open(pipename, O_RDWR);
 	if (fd < 0) {
 		perror("open pipe");
 		exit(-1);
 	}
+
+	free(pipename);
 
 	return fd;	
 }

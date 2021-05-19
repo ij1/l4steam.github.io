@@ -360,7 +360,7 @@ function clean()
         _sudo ip link set dev "$br" down || true
         _sudo ip link del dev "$br" || true
     done
-    _sudo rm -f "ack_coal_pipe"
+    _sudo rm -f ack_coal_pipe_tun*
     restore_hosts
 }
 

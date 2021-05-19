@@ -58,7 +58,7 @@ int main(int argc, char **argv)
 
 	options(argc, argv);
 	tunfd = create_tun(tundevname);
-	pipefd = get_pipe(PIPE_NAME);
+	pipefd = get_pipe(PIPE_NAME, tundevname);
 	packet_loop(tunfd, pipefd);
 
 	close(tunfd);
