@@ -8,7 +8,7 @@
 #include <unistd.h>
 
 struct packet {
-        ssize_t len;
+        unsigned int len;
 	struct iphdr *ip;
 	struct tcphdr *tcp;
 	struct packet *next;
