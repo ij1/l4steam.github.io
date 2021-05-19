@@ -35,8 +35,8 @@ int packet_loop(int tunfd, int pipefd)
 			perror("len read");
 			exit(-1);
 		}
-		if (len > PIPE_PKT_SIZE) {
-			fprintf(stderr, "Too long packet %lu, abort\n", len);
+		if (sender_len > PIPE_PKT_SIZE) {
+			fprintf(stderr, "Too long packet %u, abort\n", sender_len);
 			exit(-1);
 		}
 		len = read(pipefd, &buf, sender_len);
