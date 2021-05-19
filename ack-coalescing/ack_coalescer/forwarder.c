@@ -26,8 +26,8 @@ void options(int argc, char **argv)
 int packet_loop(int tunfd, int pipefd)
 {
 	unsigned char buf[PIPE_PKT_SIZE];
-	unsigned int sender_len;
-	ssize_t len;
+	unsigned int sender_len, len;
+	ssize_t res;
 
 	while (1) {
 		len = read(pipefd, &sender_len, sizeof(unsigned int));
@@ -39,10 +39,18 @@ int packet_loop(int tunfd, int pipefd)
 			fprintf(stderr, "Too long packet %u, abort\n", sender_len);
 			exit(-1);
 		}
-		len = read(pipefd, &buf, sender_len);
-		if (len < sender_len) {
-			perror("partial packet read");
-			exit(-1);
+		len = 0;
+		while (len < sender_len) {
+			res = read(pipefd, &buf[len], sender_len - len);
+			if (res < 0) {
+				perror("pipe packet read");
+				exit(-1);
+			}
+			len += res;
+			if (len < sender_len) {
+				fprintf(stderr, "partial pipe read %u/%u, reading more\n",
+				        len, sender_len);
+			}
 		}
 		len = write(tunfd, &buf, len);
 		if (len < sender_len) {
