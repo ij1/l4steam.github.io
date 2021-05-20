@@ -91,6 +91,15 @@ void halfdrop(struct flow *fl, bool timeout)
 	free_packets(fl);
 }
 
+void every16(struct flow *fl, bool timeout)
+{
+	packet_count++;
+	if (packet_count > init_period_packets && fl->pkt_count < 16)
+		return;
+	send_packet(fl->pkt);
+	free_packets(fl);
+}
+
 #define GRANT_DELAY 20000
 
 void ackreqgrant(struct flow *fl, bool timeout)
@@ -135,6 +144,7 @@ struct strategy {
 struct strategy strategies[] = {
 	{"immediate", immediate},
 	{"halfdrop", halfdrop},
+	{"every16", every16},
 	{"reqgrant", ackreqgrant}
 };
 
