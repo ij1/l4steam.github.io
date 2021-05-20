@@ -172,7 +172,7 @@ int main(int argc, const char **argv)
 	const char *filter;
 
 	if (argc < 2) {
-		fprintf(stderr, "Usage: %s INTERFACE <pcap_filter>", *argv);
+		fprintf(stderr, "Usage: %s INTERFACE <pcap_filter>\n", *argv);
 		return EXIT_FAILURE;
 	}
 	dev = argv[1];
