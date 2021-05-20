@@ -76,6 +76,7 @@ IPADDR[delay-e2]="${BASE_BR2}.253"
 IPADDR[aqm-e2]="${BASE_BR2}.254"
 IPADDR[aqm-e1]="${BASE_BR1}.254"
 
+IPERF="iperf3"
 DELAY_DUMP=${HERE}/qdelay_dump
 DELAY_DUMPER="${DELAY_DUMP}/qdelay_dump"
 ACK_COALESCE="${HERE}/ack_coalescer"
@@ -286,8 +287,8 @@ function iperf_server()
     local suffix=$2
     shift 2
     FILTER="ip and src net ${BASE_BR0}.0/24"
-    echo "[$ns] iperf3 -s -1 -i .1 -J $@ &> ${DATA_DIR}/iperf_$(gen_suffix $ns)${suffix}.json"
-    ns_exec_silent "$ns" iperf3 -1 -s -i .1 -J "$@" \
+    echo "[$ns] $IPERF -s -1 -i .1 -J $@ &> ${DATA_DIR}/iperf_$(gen_suffix $ns)${suffix}.json"
+    ns_exec_silent "$ns" "$IPERF" -1 -s -i .1 -J "$@" \
         &> "${DATA_DIR}/iperf_$(gen_suffix $ns)${suffix}.json" &
     echo "[$ns] "$DELAY_DUMPER e0 $FILTER > "${DATA_DIR}/qdelay_$(gen_suffix $ns).qdelay"
     ns_exec_silent "$ns" "$DELAY_DUMPER" "e0" "$FILTER" \
@@ -300,8 +301,8 @@ function iperf_client()
     local dst=$2
     local suffix=$3
     shift 3
-    echo "[$ns] iperf3 -c $dst -i .1 -t $TIME -J $@ &> ${DATA_DIR}/iperf_$(gen_suffix $ns)${suffix}.json"
-    ns_exec_silent "$ns" iperf3 -c "$dst" -i .1 -t "$TIME" -J "$@" \
+    echo "[$ns] $IPERF -c $dst -i .1 -t $TIME -J $@ &> ${DATA_DIR}/iperf_$(gen_suffix $ns)${suffix}.json"
+    ns_exec_silent "$ns" "$IPERF" -c "$dst" -i .1 -t "$TIME" -J "$@" \
         &> "${DATA_DIR}/iperf_$(gen_suffix $ns)${suffix}.json"
 }
 
@@ -332,7 +333,7 @@ function run_test()
         iperf_client c$i s$i "" &
     done
     sleep $((TIME+5))
-    $SUDO killall -w -SIGTERM iperf3
+    $SUDO killall -w -SIGTERM $(basename "$IPERF")
     sleep 1
     $SUDO killall -w -SIGHUP $(basename "$DELAY_DUMPER")
     if [ ! -z "$TCPDUMP" ]; then
