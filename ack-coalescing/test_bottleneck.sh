@@ -317,7 +317,7 @@ function run_test()
 {
     setup_aqm
 
-    _sudo killall iperf &> /dev/null || true
+    _sudo killall -w iperf &> /dev/null || true
     for i in $(seq $HOST_PAIRS); do
         set_sysctl s$i
         set_sysctl c$i
@@ -330,13 +330,13 @@ function run_test()
     echo "Running tests for ${TIME}sec"
     for i in $(seq $HOST_PAIRS); do
         iperf_client c$i s$i "" &
-        pid_iperf=$!
     done
     sleep $((TIME+5))
-    wait $pid_iperf
-    $SUDO killall -SIGHUP $(basename "$DELAY_DUMPER")
+    $SUDO killall -w -SIGTERM iperf3
+    sleep 1
+    $SUDO killall -w -SIGHUP $(basename "$DELAY_DUMPER")
     if [ ! -z "$TCPDUMP" ]; then
-        $SUDO killall -SIGTERM $(basename "$TCPDUMP")
+        $SUDO killall -w -SIGTERM $(basename "$TCPDUMP")
     fi
     sleep .1
     for i in $(seq $HOST_PAIRS); do
