@@ -100,7 +100,7 @@ void every16(struct flow *fl, bool timeout)
 	free_packets(fl);
 }
 
-#define GRANT_DELAY 20000
+#define GRANT_DELAY 4250
 
 void ackreqgrant(struct flow *fl, bool timeout)
 {
