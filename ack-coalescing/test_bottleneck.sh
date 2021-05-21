@@ -333,7 +333,7 @@ function run_test()
         iperf_client c$i s$i "" &
     done
     sleep $((TIME+5))
-    $SUDO killall -w -SIGTERM $(basename "$IPERF")
+    $SUDO killall -w -SIGTERM $(basename "$IPERF") || true
     sleep 1
     $SUDO killall -w -SIGHUP $(basename "$DELAY_DUMPER")
     if [ ! -z "$TCPDUMP" ]; then
