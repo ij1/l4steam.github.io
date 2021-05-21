@@ -287,7 +287,7 @@ function iperf_server()
     local suffix=$2
     shift 2
     FILTER="ip and src net ${BASE_BR0}.0/24"
-    echo "[$ns] $IPERF -s -1 -i .1 -J $@ &> ${DATA_DIR}/iperf_$(gen_suffix $ns)${suffix}.json"
+    echo "[$ns] $IPERF -s -1 -i .05 -J $@ &> ${DATA_DIR}/iperf_$(gen_suffix $ns)${suffix}.json"
     ns_exec_silent "$ns" "$IPERF" -1 -s -i .1 -J "$@" \
         &> "${DATA_DIR}/iperf_$(gen_suffix $ns)${suffix}.json" &
     echo "[$ns] "$DELAY_DUMPER e0 $FILTER > "${DATA_DIR}/qdelay_$(gen_suffix $ns).qdelay"
