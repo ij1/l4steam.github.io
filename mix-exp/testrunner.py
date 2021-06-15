@@ -78,7 +78,7 @@ class CCA(object):
     def as_json(cls):
         return cls.__name__
 
-def CCAFactory(name=None, color=None, aqm=None, ecn=None, ecnopt=-1, ecnunsafe=-1, params=None, extra_rtt=0, superklass=CCA):
+def CCAFactory(name=None, color=None, aqm=None, ecn=None, ecnopt=-1, ecnunsafe=-1, params=None, extra_rtt=0, superklass=CCA, extra=''):
     if superklass.__name__ == 'CCA':
         if name is None:
             raise ValueError('name required')
@@ -186,10 +186,11 @@ def CCAFactory(name=None, color=None, aqm=None, ecn=None, ecnopt=-1, ecnunsafe=-
     if extra_rtt != 0:
         NewCCA.EXTRA_RTT = extra_rtt
 
-    NewCCA.__name__ = '%s%s%s%s' % (NewCCA.NAME.capitalize(),
+    NewCCA.__name__ = '%s%s%s%s%s' % (NewCCA.NAME.capitalize(),
                                     NewCCA.params_string(),
                                     NewCCA.extra_rtt_string(),
-                                    NewCCA.ecn_string())
+                                    NewCCA.ecn_string(),
+                                    extra)
 
     return NewCCA
 
