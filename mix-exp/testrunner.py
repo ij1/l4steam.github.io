@@ -541,10 +541,14 @@ def gen_testplan():
     Cubic = CCAFactory(name='Cubic', color='orange', aqm='fq_codel_tst', ecn=0)
     CubicECN = CCAFactory(name='Cubic', color='orange', aqm='fq_codel_tst', ecn=1)
 
+    Prague2 = CCAFactory(color='magenta', superklass=Prague, extra='2')
+    Cubic2 = CCAFactory(color='gold', superklass=Cubic, extra='2')
+    CubicECN2 = CCAFactory(color='gold', superklass=CubicECN, extra='2')
+
     for bw in [120]:
         for rtt in [10]:
-                    testplan.append(Test(cc1=Prague, cc2=[Cubic], bw=bw, rtt=rtt))
-                    testplan.append(Test(cc1=Prague, cc2=[CubicECN], bw=bw, rtt=rtt))
+                    testplan.append(Test(cc1=Prague, cc2=[Cubic, Prague2, Cubic2], bw=bw, rtt=rtt))
+                    testplan.append(Test(cc1=Prague, cc2=[CubicECN, Prague2, CubicECN2], bw=bw, rtt=rtt))
     Test.save_config(testplan)
     return testplan
 
