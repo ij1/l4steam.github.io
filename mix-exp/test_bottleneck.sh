@@ -291,7 +291,7 @@ function run_test()
         start_tcpdump c$i
         start_tcpdump s$i
         if [[ $i -gt 2 ]]; then
-	    start_static_server s$i
+	    start_static_server c$i
 	fi
 	start_qdelay_dump s$i
     done
@@ -299,7 +299,7 @@ function run_test()
     echo "Running tests for ${TIME}sec"
     for i in $(seq $HOST_PAIRS); do
         if [[ $i -gt 2 ]]; then
-	    start_static_client c$i s$i
+	    start_static_client s$i c$i
 	fi
     done
 
@@ -307,13 +307,13 @@ function run_test()
 
     for i in $(seq $HOST_PAIRS); do
 	if [[ $i -le 2 ]]; then
-	    start_dyn_server s$i $i 1000$i
+	    start_dyn_server c$i $i 1000$i
 	fi
     done
     sleep 1
     for i in $(seq $HOST_PAIRS); do
 	if [[ $i -le 2 ]]; then
-            start_dyn_client c$i $i s$i 1000$i "${MIT}"
+            start_dyn_client s$i $i c$i 1000$i "${MIT}"
             pid_iperf=$!
             sleep 0.1
         fi
