@@ -214,7 +214,7 @@ class Test(object):
     PLOT_SUBDIR = DATA_DIR / 'plots'
     BW_SCALE = 1_000_000  # Mb
     AQM = 'dualpi2'
-    DURATION = 40  # s
+    DURATION = 120  # s
     _CFG = "test_cfg.json"
 
     @classmethod
