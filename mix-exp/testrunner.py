@@ -469,10 +469,10 @@ class Test(object):
             gridspec_kw={ 'hspace': .1, 'height_ratios': [5, 5, 5, 5], })
 
         time_base = self.plot_qdelay(ax1)
-        self.plot_bw(ax0, time_base)
+#        self.plot_bw(ax0, time_base)
         self.plot_ce(ax2)
 #        self.plot_rtt(ax2, time_base)
-        self.plot_cwnd(ax3, time_base)
+#        self.plot_cwnd(ax3, time_base)
 
         ax3.set_xlabel('Time [s]')
         ticks = [i * self.DURATION / 8 for i in range(9)]
