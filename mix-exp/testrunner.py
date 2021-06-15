@@ -393,7 +393,7 @@ class Test(object):
 
     def plot_ce(self, ax):
         ax.set_ylabel('CE prob')
-        ax.set_ylim(0, 1)
+        ax.set_ylim(bottom=0)
 
         series = [('s1', self.cc1)]
         for i, cc in self.enumerate_cc2():
