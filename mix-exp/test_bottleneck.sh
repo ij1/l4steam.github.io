@@ -57,6 +57,8 @@ LOG_PATTERN=${LOG_PATTERN:-}
 
 TIME=${TIME:-10}
 
+MIT=${MIT:-100000}
+
 BASE_BR0=10.0.1
 BASE_BR1=10.0.2
 BASE_BR2=10.0.3
@@ -72,11 +74,15 @@ IPADDR[delay-e2]="${BASE_BR2}.253"
 IPADDR[aqm-e2]="${BASE_BR2}.254"
 IPADDR[aqm-e1]="${BASE_BR1}.254"
 
+WLGS=""
+PATH_TO_TRAFFIC_GENERATOR="$(realpath $(dirname "$0"))/traffic_generators"
 DELAY_DUMP=${HERE}/qdelay_dump
 DELAY_DUMPER="${DELAY_DUMP}/qdelay_dump"
 TCPDUMP=""
 
 make -C "$DELAY_DUMP"
+
+source "${PATH_TO_TRAFFIC_GENERATOR}/mix_functions.sh"
 
 function macaddr()
 {
@@ -230,18 +236,24 @@ function start_tcpdump()
 	"$FILTER" &
 }
 
+function start_qdelay_dump()
+{
+    local ns=$1
+    FILTER="ip and src net ${BASE_BR0}.0/24"
+
+    echo "[$ns] $DELAY_DUMPER e0 $FILTER &> ${DATA_DIR}/qdelay_$(gen_suffix $ns).qdelay"
+    ns_exec_silent "$ns" "$DELAY_DUMPER" "e0" "$FILTER" \
+        &> "${DATA_DIR}/qdelay_$(gen_suffix $ns).qdelay" &
+}
+
 function iperf_server()
 {
     local ns=$1
     local suffix=$2
     shift 2
-    FILTER="ip and src net ${BASE_BR0}.0/24"
     echo "[$ns] iperf3 -s -1 -i .1 -J $@ &> ${DATA_DIR}/iperf_$(gen_suffix $ns)${suffix}.json"
     ns_exec_silent "$ns" iperf3 -1 -s -i .1 -J "$@" \
         &> "${DATA_DIR}/iperf_$(gen_suffix $ns)${suffix}.json" &
-    echo "[$ns] "$DELAY_DUMPER e0 $FILTER > "${DATA_DIR}/qdelay_$(gen_suffix $ns).qdelay"
-    ns_exec_silent "$ns" "$DELAY_DUMPER" "e0" "$FILTER" \
-        > "${DATA_DIR}/qdelay_$(gen_suffix $ns).qdelay" &
 }
 
 function iperf_client()
@@ -265,25 +277,52 @@ function update_network()
 
 function run_test()
 {
+    local rate=$(echo "$RATE" | sed -e 's|[^0-9]||g')
+    local rtt=$(echo "$DELAY" | sed -e 's|[^0-9]||g')
+    local wait=$((5 + $rate * $rtt / 100 + 4))
+
     setup_aqm
 
-    _sudo killall iperf &> /dev/null || true
+    _sudo killall iperf dl_client dl_server \
+        http_client_itime run_httpserver &> /dev/null || true
     for i in $(seq $HOST_PAIRS); do
         set_sysctl s$i
         set_sysctl c$i
         start_tcpdump c$i
         start_tcpdump s$i
-        iperf_server s$i ""
+        if [[ $i -gt 2 ]]; then
+	    start_static_server s$i
+	fi
+	start_qdelay_dump s$i
     done
     sleep .1
-
     echo "Running tests for ${TIME}sec"
     for i in $(seq $HOST_PAIRS); do
-        iperf_client c$i s$i "" &
-        pid_iperf=$!
+        if [[ $i -gt 2 ]]; then
+	    start_static_client c$i s$i
+	fi
+    done
+
+    sleep "$wait"
+
+    for i in $(seq $HOST_PAIRS); do
+	if [[ $i -le 2 ]]; then
+	    start_dyn_server s$i $i 1000$i
+	fi
+    done
+    sleep 1
+    for i in $(seq $HOST_PAIRS); do
+	if [[ $i -le 2 ]]; then
+            start_dyn_client c$i $i s$i 1000$i "${MIT}"
+            pid_iperf=$!
+            sleep 0.1
+        fi
     done
     sleep $((TIME+5))
-    wait $pid_iperf
+    if [ ! -z "$WLGS" ]; then
+        $SUDO killall -w -SIGTERM $WLGS || true
+    fi
+    sleep 1
     $SUDO killall -SIGHUP $(basename "$DELAY_DUMPER")
     if [ ! -z "$TCPDUMP" ]; then
         $SUDO killall -SIGTERM $(basename "$TCPDUMP")
