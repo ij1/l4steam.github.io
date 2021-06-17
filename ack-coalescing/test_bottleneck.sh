@@ -76,6 +76,7 @@ IPADDR[delay-e2]="${BASE_BR2}.253"
 IPADDR[aqm-e2]="${BASE_BR2}.254"
 IPADDR[aqm-e1]="${BASE_BR1}.254"
 
+TC="tc"
 IPERF="iperf3"
 DELAY_DUMP=${HERE}/qdelay_dump
 DELAY_DUMPER="${DELAY_DUMP}/qdelay_dump"
@@ -185,7 +186,7 @@ function setup_aqm()
     ns_exec aqm tc qdisc del dev e1 root &> /dev/null || true
     ns_exec aqm tc qdisc add dev e1 root handle 1: htb default 1 direct_qlen 10000
     ns_exec aqm tc class add dev e1 parent 1: classid 1:1 htb rate "$RATE" ceil "$RATE"
-    ns_exec aqm tc qdisc add dev e1 parent 1:1 handle 2: $AQM
+    ns_exec aqm "$TC" qdisc add dev e1 parent 1:1 handle 2: $AQM
     ns_exec delay tc qdisc del dev e0 root &> /dev/null || true
     ns_exec delay tc qdisc add dev e0 root handle 1: netem delay "$DELAY"
 
