@@ -570,21 +570,36 @@ def gen_testplan():
     testplan = []
 
     Prague = CCAFactory(name='Prague', color='blue', aqm='dualpi2', ecn=ACCECN_ENABLED_VALUE, ecnopt=1)
+    PragueECN = CCAFactory(name='Prague', color='blue', aqm='dualpi2', ecn=1, ecnopt=1)
+
     DCTCP = CCAFactory(name='DCTCP', color='green', aqm='dualpi2', ecn=1, ecnopt=1)
     DCTCPAccECN = CCAFactory(name='DCTCP', color='green', aqm='dualpi2', ecn=ACCECN_ENABLED_VALUE, ecnopt=1)
 
+    Prague_ao = CCAFactory(name='Prague', color='blue', aqm='dualpi2', ecn=ACCECN_ENABLED_VALUE, ecnopt=2)
+    DCTCPAccECN_ao = CCAFactory(name='DCTCP', color='green', aqm='dualpi2', ecn=ACCECN_ENABLED_VALUE, ecnopt=2)
+
     # cc, 2nd cc color
-    ccs = ((Prague, 'magenta'),
-           (DCTCP, 'greenyellow'),
-           (DCTCPAccECN, 'greenyellow'))
+    ccs = ((PragueECN, 'magenta'),
+           (Prague, 'magenta'),
+           (Prague_ao, 'magenta'),
+           (DCTCP, 'olive'),
+           (DCTCPAccECN, 'olive'),
+           (DCTCPAccECN_ao, 'olive'),
+           )
 
     for bw in [20, 100]:
-#    for bw in [20]:
-        for rtt in [80]:
-            for strategy in ('immediate', 'halfdrop', 'reqgrant',):
-                for cc, col in ccs:
+        for rtt in [20, 40, 80]:
+
+
+            for cc, col in ccs:
+                strategies = ['reqgrant']
+                if cc.ECN == ACCECN_ENABLED_VALUE:
+                    strategies.append('accecn-aware-reqgrant')
+
+                for strategy in strategies:
                     cc2 = CCAFactory(ack_strategy=strategy, color=col, superklass=cc)
                     testplan.append(Test(cc, cc2=[cc2], bw=bw, rtt=rtt))
+
     Test.save_config(testplan)
     return testplan
 
