@@ -263,13 +263,16 @@ function gen_suffix()
 function start_tcpdump()
 {
     local ns=$1
-    shift 1
     if [ -z "$TCPDUMP" ]; then
         return 0
     fi
+    local dev="e0"
+    if [ $# -gt 1 ]; then
+        dev="$2"
+    fi
     FILTER="ip and src net ${BASE_BR10}.0.0/16"
-    ns_exec_silent "$ns" "$TCPDUMP" "-i" "e0" \
-	"-w" "${DATA_DIR}/dump_$(gen_suffix $ns).dump" \
+    ns_exec_silent "$ns" "$TCPDUMP" "-i" "$dev" \
+	"-w" "${DATA_DIR}/dump_${dev}_$(gen_suffix $ns).dump" \
 	"$FILTER" &
 }
 
@@ -279,7 +282,11 @@ function post_tcpdump()
     if [ -z "$TCPDUMP" ]; then
         return 0
     fi
-    _sudo bzip2 -9 -f "${DATA_DIR}/dump_$(gen_suffix $ns).dump"
+    local dev="e0"
+    if [ $# -gt 1 ]; then
+        dev="$2"
+    fi
+    _sudo bzip2 -9 -f "${DATA_DIR}/dump_${dev}_$(gen_suffix $ns).dump"
 }
 
 function iperf_server()
