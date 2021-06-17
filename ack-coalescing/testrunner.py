@@ -458,7 +458,6 @@ class Test(object):
             cwnd, t = self.process_bw_data(data, time_base, 'snd_cwnd')
             ax.plot(t, cwnd, label=name,
                      color=color, alpha=.8, linewidth=1)
-        ax.legend()
 
     def plot_rtt(self, ax, time_base):
         ax.set_ylabel('RTT')
@@ -467,35 +466,54 @@ class Test(object):
         for i, cc in self.enumerate_cc2():
             series.append((cc, 'c%d' % i, self.legend(cc)))
         for cc, data, name in series:
-            log.info('.. CWND for client=%s', data)
+            log.info('.. RTT for client=%s', data)
             color = cc.COLOR
             rtt, t = self.process_bw_data(data, time_base, 'rtt', scale=0.001)
             ax.plot(t, rtt, label=name,
                      color=color, alpha=.8, linewidth=1)
-        ax.legend()
+
+    def plot_alpha(self, ax, time_base):
+        ax.set_ylabel('Alpha')
+        ax.set_ylim(0, 0.25)
+
+        series = [(self.cc1, 'c1', self.legend(self.cc1))]
+        for i, cc in self.enumerate_cc2():
+            series.append((cc, 'c%d' % i, self.legend(cc)))
+        for cc, data, name in series:
+            log.info('.. alpha for client=%s', data)
+            color = cc.COLOR
+            rtt, t = self.process_bw_data(data, time_base, 'alpha', scale=1.0/(2**20))
+            ax.plot(t, rtt, label=name,
+                     color=color, alpha=.8, linewidth=1)
 
     def plot(self):
         log.info('Plotting %s vs %s at %dMbit/%gms', self.cc1.pretty_name(),
                  self.cc2_names,
                  self.bw, self.rtt)
 
-        fig, (ax0, ax1, ax2, ax3) = plt.subplots(
-            nrows=4, figsize=(10, 12), sharex=True,
-            gridspec_kw={ 'hspace': .1, 'height_ratios': [5, 5, 5, 5], })
+        FIGS = 5
+        ratios = []
+        for i in range(FIGS):
+            ratios.append(5)
 
-        time_base = self.plot_qdelay(ax1)
-        self.plot_bw(ax0, time_base)
-        self.plot_ce(ax2)
-#        self.plot_rtt(ax2, time_base)
-        self.plot_cwnd(ax3, time_base)
+        fig, ax = plt.subplots(
+            nrows=FIGS, figsize=(10, 12), sharex=True,
+            gridspec_kw={ 'hspace': .1, 'height_ratios': ratios, })
 
-        ax3.set_xlabel('Time [s]')
+        time_base = self.plot_qdelay(ax[1])
+        self.plot_bw(ax[0], time_base)
+        self.plot_ce(ax[2])
+#        self.plot_rtt(ax[2], time_base)
+        self.plot_alpha(ax[3], time_base)
+        self.plot_cwnd(ax[4], time_base)
+
+        ax[-1].set_xlabel('Time [s]')
         ticks = [i * self.DURATION / 8 for i in range(9)]
-        for ax in (ax0, ax1, ax2, ax3):
-            ax.label_outer()
-            ax.set_xlim(time_base, time_base + self.DURATION)
-            ax.set_xticks([time_base + t for t in ticks])
-        ax3.set_xticklabels([str(t) for t in ticks])
+        for a in ax:
+            a.label_outer()
+            a.set_xlim(time_base, time_base + self.DURATION)
+            a.set_xticks([time_base + t for t in ticks])
+        ax[-1].set_xticklabels([str(t) for t in ticks])
         if self.title:
             fig.suptitle(self.title)
 
