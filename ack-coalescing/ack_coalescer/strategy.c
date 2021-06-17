@@ -9,7 +9,7 @@
 
 #include "coalescer.h"
 
-int accecn_aware = 1;
+int accecn_aware = 0;
 
 static struct event event_q = { .fl = NULL, .next = NULL };
 
@@ -239,12 +239,19 @@ struct strategy strategies[] = {
 	{"immediate", immediate},
 	{"halfdrop", halfdrop},
 	{"every16", every16},
-	{"reqgrant", ackreqgrant}
+	{"reqgrant", ackreqgrant},
+	{"accecn-aware-reqgrant", ackreqgrant}
 };
+
+#define ACCECN_AWARE "accecn-aware"
 
 strategy_func get_strategy(char *strategy)
 {
 	int i;
+
+	accecn_aware = 0;
+	if (!strncmp(strategy, ACCECN_AWARE, strlen(ACCECN_AWARE)))
+		accecn_aware = 1;
 
 	for (i = 0; i < sizeof(strategies) / sizeof(strategy); i++) {
 		if (!strcmp(strategies[i].name, strategy))
