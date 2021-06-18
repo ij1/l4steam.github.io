@@ -571,9 +571,11 @@ def gen_testplan():
 
     Prague = CCAFactory(name='Prague', color='blue', aqm='dualpi2', ecn=ACCECN_ENABLED_VALUE, ecnopt=1)
     PragueECN = CCAFactory(name='Prague', color='blue', aqm='dualpi2', ecn=1, ecnopt=1)
+    Praguenoopt = CCAFactory(name='Prague', color='blue', aqm='dualpi2', ecn=ACCECN_ENABLED_VALUE, ecnopt=0)
 
     DCTCP = CCAFactory(name='DCTCP', color='green', aqm='dualpi2', ecn=1, ecnopt=1)
     DCTCPAccECN = CCAFactory(name='DCTCP', color='green', aqm='dualpi2', ecn=ACCECN_ENABLED_VALUE, ecnopt=1)
+    DCTCPnoopt = CCAFactory(name='DCTCP', color='green', aqm='dualpi2', ecn=ACCECN_ENABLED_VALUE, ecnopt=0)
 
     Prague_ao = CCAFactory(name='Prague', color='blue', aqm='dualpi2', ecn=ACCECN_ENABLED_VALUE, ecnopt=2)
     DCTCPAccECN_ao = CCAFactory(name='DCTCP', color='green', aqm='dualpi2', ecn=ACCECN_ENABLED_VALUE, ecnopt=2)
@@ -582,9 +584,11 @@ def gen_testplan():
     ccs = ((PragueECN, 'magenta'),
            (Prague, 'magenta'),
            (Prague_ao, 'magenta'),
+           (Praguenoopt, 'magenta'),
            (DCTCP, 'olive'),
            (DCTCPAccECN, 'olive'),
            (DCTCPAccECN_ao, 'olive'),
+           (DCTCPnoopt, 'olive'),
            )
 
     for bw in [20, 100]:
@@ -593,7 +597,7 @@ def gen_testplan():
 
             for cc, col in ccs:
                 strategies = ['reqgrant']
-                if cc.ECN == ACCECN_ENABLED_VALUE:
+                if cc.ECN == ACCECN_ENABLED_VALUE and cc.ECNOPT != 0:
                     strategies.append('accecn-aware-reqgrant')
 
                 for strategy in strategies:
