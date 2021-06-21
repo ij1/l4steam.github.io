@@ -482,7 +482,7 @@ class Test(object):
         for cc, data, name in series:
             log.info('.. alpha for client=%s', data)
             color = cc.COLOR
-            rtt, t = self.process_bw_data(data, time_base, 'alpha', scale=1.0/(2**20))
+            rtt, t = self.process_bw_data(data, time_base, 'alpha', scale=1.0)
             ax.plot(t, rtt, label=name,
                      color=color, alpha=.8, linewidth=1)
 
