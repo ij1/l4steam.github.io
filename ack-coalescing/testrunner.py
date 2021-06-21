@@ -474,7 +474,7 @@ class Test(object):
 
     def plot_alpha(self, ax, time_base):
         ax.set_ylabel('Alpha')
-        ax.set_ylim(0, 0.25)
+        ax.set_ylim(0, 0.4)
 
         series = [(self.cc1, 'c1', self.legend(self.cc1))]
         for i, cc in self.enumerate_cc2():
