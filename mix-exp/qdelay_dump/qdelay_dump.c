@@ -30,7 +30,7 @@ static void write_header()
 	fprintf(stdout, "{\"results\":[\n");
 }
 
-static void write_entry(uint64_t ts, u32 delay, u32 drop, u8 ce)
+static void write_entry(uint64_t ts, u32 delay, u32 drop, u8 ce, u8 ect)
 {
 	static int first = 1;
 
@@ -38,7 +38,8 @@ static void write_entry(uint64_t ts, u32 delay, u32 drop, u8 ce)
 		"%s{\"ts-us\":%lu,"
 		"\"delay-us\":%u,"
 		"\"drop\":%u,"
-		"\"ce\":%u}\n", first ? "" : ",", ts, delay, drop, ce);
+		"\"ce\":%u,"
+		"\"ect\":%u}\n", first ? "" : ",", ts, delay, drop, ce, ect);
 	first = 0;
 }
 
@@ -75,7 +76,7 @@ static void capture_handler(u_char *user, const struct pcap_pkthdr *h,
 	drops = fl2int(id >> (QDELAY_E + QDELAY_M), DROPS_M, DROPS_E);
 	ce = (ip->tos & 0x3) == 0x3;
 	write_entry((uint64_t)h->ts.tv_usec + (uint64_t)h->ts.tv_sec * US_PER_S,
-		    delay, drops, ce);
+		    delay, drops, ce, ip->tos & 0x3);
 }
 
 static void _sig_received(int s)
