@@ -597,8 +597,6 @@ def gen_testplan():
 
             for cc, col in ccs:
                 strategies = ['reqgrant']
-                if cc.ECN == ACCECN_ENABLED_VALUE and cc.ECNOPT != 0:
-                    strategies.append('accecn-aware-reqgrant')
 
                 for strategy in strategies:
                     cc2 = CCAFactory(ack_strategy=strategy, color=col, superklass=cc)
