@@ -18,22 +18,17 @@ struct packet {
 
 void send_packet(struct packet *pkt);
 
-struct flow {
-        __be32 saddr;
-        __be32 daddr;
-        __be16 sport;
-        __be16 dport;
-
+struct queue {
         struct packet *pkt;
         unsigned int pkt_count;
         struct timeval timeout;
 };
 
-typedef void (*strategy_func)(struct flow *fl, bool timeout);
+typedef void (*strategy_func)(struct queue *q, bool timeout);
 strategy_func get_strategy(char *strategy);
 
 struct event {
-        struct flow *fl;
+        struct queue *queue;
         struct event *next;
 };
 
