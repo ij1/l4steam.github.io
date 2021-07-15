@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 #include <sys/time.h>
 
 #include <arpa/inet.h>
@@ -11,6 +12,7 @@
 #include "coalescer.h"
 
 int accecn_aware = 0;
+int coalescer_depth = UINT_MAX;
 
 static struct event event_q = { .queue = NULL, .next = NULL };
 
@@ -213,6 +215,7 @@ void ackreqgrant(struct queue *q, bool timeout)
 {
 	struct packet *first, *pkt, *tmp;
 	int seq_delta;
+	int depth;
 
 	if (timeout) {
 		del_event_for_queue(q);
@@ -253,6 +256,7 @@ void ackreqgrant(struct queue *q, bool timeout)
 			return;
 
 		pkt = first;
+		depth = 1;
 		while (pkt->next != NULL) {
 			/* Coalesce ACKs? */
 			if (same_flow_check(first, pkt->next)) {
@@ -271,6 +275,12 @@ void ackreqgrant(struct queue *q, bool timeout)
 				free(tmp);
 				break;
 			}
+
+			/* Allow limiting how deep the queue is looked at */
+			if (depth >= coalescer_depth)
+				break;
+			depth++;
+
 			pkt = pkt->next;
 		}
 	}
