@@ -6,6 +6,7 @@
 
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
+#include <netinet/ip.h>
 
 #include "coalescer.h"
 
@@ -80,6 +81,22 @@ void free_packets(struct queue *q)
 		q->pkt = pkt;
 	}
 	q->pkt_count = 0;
+}
+
+bool same_flow_check(struct packet *a, struct packet *b)
+{
+	return a->tcp->source == b->tcp->source &&
+	       a->tcp->dest == b->tcp->dest &&
+	       a->ip->saddr == b->ip->saddr &&
+	       a->ip->daddr == b->ip->daddr;
+}
+
+bool pure_ack_check(struct packet *p)
+{
+	unsigned int len = ntohs(p->ip->tot_len) - (p->ip->ihl << 2) -
+			   (p->tcp->th_off << 2);
+
+	return p->tcp->ack && len == 0;
 }
 
 #define TCPOPT_EXP              254     /* Experimental */
@@ -194,6 +211,9 @@ void every16(struct queue *q, bool timeout)
 
 void ackreqgrant(struct queue *q, bool timeout)
 {
+	struct packet *first, *pkt, *tmp;
+	int seq_delta;
+
 	if (timeout) {
 		del_event_for_queue(q);
 		if (accecn_aware) {
@@ -227,6 +247,32 @@ void ackreqgrant(struct queue *q, bool timeout)
 		}
 
 		add_event_for_queue(q);
+	} else {
+		first = q->pkt;
+		if (!pure_ack_check(first))
+			return;
+
+		pkt = first;
+		while (pkt->next != NULL) {
+			/* Coalesce ACKs? */
+			if (same_flow_check(first, pkt->next)) {
+				if (!pure_ack_check(pkt->next))
+					break;
+
+				tmp = pkt->next;
+				seq_delta = ntohl(first->tcp->ack_seq) -
+				            ntohl(tmp->tcp->ack_seq);
+
+				if (seq_delta <= 0)
+					break;
+
+				pkt->next = tmp->next;
+				q->pkt_count--;
+				free(tmp);
+				break;
+			}
+			pkt = pkt->next;
+		}
 	}
 }
 
