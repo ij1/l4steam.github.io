@@ -11,11 +11,11 @@
 
 int accecn_aware = 0;
 
-static struct event event_q = { .fl = NULL, .next = NULL };
+static struct event event_q = { .queue = NULL, .next = NULL };
 
 static long long packet_count = 0;
 
-void add_event_for_flow(struct flow *fl)
+void add_event_for_queue(struct queue *q)
 {
 	struct event *ep = &event_q;
 	struct event *newe = malloc(sizeof(struct event));
@@ -25,16 +25,16 @@ void add_event_for_flow(struct flow *fl)
 		exit(-1);
 	}
 
-	newe->fl = fl;
+	newe->queue = q;
 	newe->next = NULL;
 
 	while (1) {
 		if (ep->next == NULL)
 			break;
 
-		if (newe->fl->timeout.tv_sec < ep->next->fl->timeout.tv_sec ||
-		    (newe->fl->timeout.tv_sec == ep->next->fl->timeout.tv_sec &&
-		     newe->fl->timeout.tv_usec < ep->next->fl->timeout.tv_usec)) {
+		if (newe->queue->timeout.tv_sec < ep->next->queue->timeout.tv_sec ||
+		    (newe->queue->timeout.tv_sec == ep->next->queue->timeout.tv_sec &&
+		     newe->queue->timeout.tv_usec < ep->next->queue->timeout.tv_usec)) {
 			break;
 		}
 		ep = ep->next;
@@ -43,7 +43,7 @@ void add_event_for_flow(struct flow *fl)
 	ep->next = newe;
 }
 
-void del_event_for_flow(struct flow *fl)
+void del_event_for_queue(struct queue *q)
 {
 	struct event *ep = &event_q;
 	struct event *e = NULL;
@@ -52,7 +52,7 @@ void del_event_for_flow(struct flow *fl)
 		if (ep->next == NULL)
 			break;
 
-		if (ep->next->fl == fl) {
+		if (ep->next->queue == q) {
 			e = ep->next;
 			ep->next = ep->next->next;
 			e->next = NULL;
@@ -70,16 +70,16 @@ struct event *get_next_event()
 	return event_q.next;
 }
 
-void free_packets(struct flow *fl)
+void free_packets(struct queue *q)
 {
 	struct packet *pkt;
 
-	while (fl->pkt != NULL) {
-		pkt = fl->pkt->next;
-		free(fl->pkt);
-		fl->pkt = pkt;
+	while (q->pkt != NULL) {
+		pkt = q->pkt->next;
+		free(q->pkt);
+		q->pkt = pkt;
 	}
-	fl->pkt_count = 0;
+	q->pkt_count = 0;
 }
 
 #define TCPOPT_EXP              254     /* Experimental */
@@ -126,7 +126,7 @@ bool packet_has_accecn_option(struct packet *pkt)
 	return false;
 }
 
-void accecn_aware_send(struct flow *fl)
+void accecn_aware_send(struct queue *q)
 {
 	struct packet *pkt;
 	struct packet *sendlist[3];
@@ -134,15 +134,15 @@ void accecn_aware_send(struct flow *fl)
 	unsigned int accecncnt = 0;
 	int i;
 
-	if (fl->pkt_count <= 0)
+	if (q->pkt_count <= 0)
 		return;
 
-	pkt = fl->pkt;
+	pkt = q->pkt;
 	sendlist[sendcnt++] = pkt;
 
 	while (pkt != NULL) {
 		if (packet_has_accecn_option(pkt)) {
-			if (pkt != fl->pkt)
+			if (pkt != q->pkt)
 				sendlist[sendcnt++] = pkt;
 
 			accecncnt++;
@@ -156,77 +156,77 @@ void accecn_aware_send(struct flow *fl)
 		send_packet(sendlist[i]);
 }
 
-void immediate(struct flow *fl, bool timeout)
+void immediate(struct queue *q, bool timeout)
 {
-	send_packet(fl->pkt);
-	free_packets(fl);
+	send_packet(q->pkt);
+	free_packets(q);
 }
 
-void halfdrop(struct flow *fl, bool timeout)
+void halfdrop(struct queue *q, bool timeout)
 {
 	packet_count++;
-	if (packet_count > init_period_packets && fl->pkt_count < 2)
+	if (packet_count > init_period_packets && q->pkt_count < 2)
 		return;
 
 	if (accecn_aware) {
-		accecn_aware_send(fl);
+		accecn_aware_send(q);
 	} else {
-		send_packet(fl->pkt);
+		send_packet(q->pkt);
 	}
-	free_packets(fl);
+	free_packets(q);
 }
 
-void every16(struct flow *fl, bool timeout)
+void every16(struct queue *q, bool timeout)
 {
 	packet_count++;
-	if (packet_count > init_period_packets && fl->pkt_count < 16)
+	if (packet_count > init_period_packets && q->pkt_count < 16)
 		return;
 
 	if (accecn_aware) {
-		accecn_aware_send(fl);
+		accecn_aware_send(q);
 	} else {
-		send_packet(fl->pkt);
+		send_packet(q->pkt);
 	}
-	free_packets(fl);
+	free_packets(q);
 }
 
 #define GRANT_DELAY 4250
 
-void ackreqgrant(struct flow *fl, bool timeout)
+void ackreqgrant(struct queue *q, bool timeout)
 {
 	if (timeout) {
-		del_event_for_flow(fl);
+		del_event_for_queue(q);
 		if (accecn_aware) {
-			accecn_aware_send(fl);
+			accecn_aware_send(q);
 		} else {
-			send_packet(fl->pkt);
+			send_packet(q->pkt);
 		}
-		free_packets(fl);
+		free_packets(q);
 
-		fl->timeout.tv_usec = 0;
-		fl->timeout.tv_sec = 0;
+		q->timeout.tv_usec = 0;
+		q->timeout.tv_sec = 0;
 		return;
 	}
 
 	packet_count++;
 	if (packet_count < init_period_packets) {
-		send_packet(fl->pkt);
-		free_packets(fl);
+		send_packet(q->pkt);
+		free_packets(q);
 		return;
 	}
 
-	if (fl->pkt_count == 1) {
-		if (gettimeofday(&(fl->timeout), NULL)) {
+	if (q->pkt_count == 1) {
+		if (gettimeofday(&(q->timeout), NULL)) {
 			perror("gettimeofday");
 			exit(1);
 		}
-		fl->timeout.tv_usec += GRANT_DELAY;
-		if (fl->timeout.tv_usec >= USECS_IN_SEC) {
-			fl->timeout.tv_usec -= USECS_IN_SEC;
-			fl->timeout.tv_sec++;
+		q->timeout.tv_usec += GRANT_DELAY;
+		if (q->timeout.tv_usec >= USECS_IN_SEC) {
+			q->timeout.tv_usec -= USECS_IN_SEC;
+			q->timeout.tv_sec++;
 		}
 
-		add_event_for_flow(fl);
+		add_event_for_queue(q);
 	}
 }
 
