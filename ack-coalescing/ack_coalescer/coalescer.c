@@ -78,12 +78,18 @@ struct queue *get_queue(struct packet *pkt)
 	return &queue;
 }
 
+void init_queue(struct queue *queue)
+{
+	queue->pkt.next = &(queue->pkt);
+	queue->pkt.prev = &(queue->pkt);
+	queue->pkt_count = 0;
+}
+
 void handle_packet(struct packet *pkt)
 {
 	struct queue *q = get_queue(pkt);
 
-	pkt->next = q->pkt;
-	q->pkt = pkt;
+	plist_insert_after(pkt, &(q->pkt));
 	q->pkt_count++;
 
 	strategy(q, false);
@@ -98,6 +104,8 @@ int packet_loop(int tunfd)
 	struct timeval tv;
 	struct timeval *tvptr;
 	struct event *e;
+
+	init_queue(&queue);
 
 	while (1) {
 		FD_ZERO(&fdset);
@@ -149,6 +157,8 @@ int packet_loop(int tunfd)
 		}
 
 		pkt = malloc(sizeof(*pkt) + PKT_SIZE);
+		pkt->next = NULL;
+		pkt->prev = NULL;
 		len = read(tunfd, &(pkt->data), PKT_SIZE);
 		if (len < 0) {
 			perror("read");
@@ -167,6 +177,10 @@ int packet_loop(int tunfd)
 			exit(-1);
 		}
 		if (pkt->ip->protocol != IPPROTO_TCP) {
+			if (gettimeofday(&tv, NULL)) {
+				perror("gettimeofday");
+				exit(-1);
+			}
 			fprintf(stderr, "Not a TCP packet: %u\n", pkt->ip->protocol);
 			free(pkt);
 			continue;
