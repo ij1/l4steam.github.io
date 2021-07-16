@@ -55,6 +55,6 @@ struct event *get_next_event();
 
 #define USECS_IN_SEC 1000000
 
-long long init_period_packets;
+extern long long init_period_packets;
 
 #endif
