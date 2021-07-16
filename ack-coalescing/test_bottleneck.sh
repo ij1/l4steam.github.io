@@ -271,7 +271,7 @@ function start_tcpdump()
         dev="$2"
     fi
     FILTER="ip and src net ${BASE_BR10}.0.0/16"
-    ns_exec_silent "$ns" "$TCPDUMP" "-i" "$dev" \
+    ns_exec_silent "$ns" "$TCPDUMP" "-i" "$dev" "-s" "100" \
 	"-w" "${DATA_DIR}/dump_${dev}_$(gen_suffix $ns).dump" \
 	"$FILTER" &
 }
