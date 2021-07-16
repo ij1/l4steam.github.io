@@ -298,7 +298,7 @@ function iperf_server()
     echo "[$ns] $IPERF -s -1 -i .05 -J $@ &> ${DATA_DIR}/iperf_$(gen_suffix $ns)${suffix}.json"
     ns_exec_silent "$ns" "$IPERF" -1 -s -i .1 -J "$@" \
         &> "${DATA_DIR}/iperf_$(gen_suffix $ns)${suffix}.json" &
-    echo "[$ns] "$DELAY_DUMPER e0 $FILTER > "${DATA_DIR}/qdelay_$(gen_suffix $ns).qdelay"
+    echo "[$ns] $DELAY_DUMPER e0 $FILTER > ${DATA_DIR}/qdelay_$(gen_suffix $ns).qdelay"
     ns_exec_silent "$ns" "$DELAY_DUMPER" "e0" "$FILTER" \
         > "${DATA_DIR}/qdelay_$(gen_suffix $ns).qdelay" &
 }
