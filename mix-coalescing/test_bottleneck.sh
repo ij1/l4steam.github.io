@@ -78,7 +78,7 @@ IPADDR[delay-e2]="${BASE_BR2}.253"
 IPADDR[aqm-e2]="${BASE_BR2}.254"
 IPADDR[aqm-e1]="${BASE_BR1}.254"
 
-WLGS=""
+WLGS="dl_client dl_server http_client_itime run_httpserver"
 PATH_TO_TRAFFIC_GENERATOR="$(realpath $(dirname "$0"))/traffic_generators"
 TC="tc"
 IPERF="iperf3"
