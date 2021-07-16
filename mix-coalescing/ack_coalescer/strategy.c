@@ -75,14 +75,28 @@ struct event *get_next_event()
 
 void free_packets(struct queue *q)
 {
-	struct packet *pkt;
+	struct packet *head = &(q->pkt);
+	struct packet *pkt = head->next;
+	struct packet *next;
 
-	while (q->pkt != NULL) {
-		pkt = q->pkt->next;
-		free(q->pkt);
-		q->pkt = pkt;
+	while (pkt != head) {
+		next = pkt->next;
+		plist_remove_packet(pkt);
+		free(pkt);
+		pkt = next;
 	}
 	q->pkt_count = 0;
+}
+
+void send_packets(struct queue *q)
+{
+	struct packet *head = &(q->pkt);
+	struct packet *pkt = head->prev;
+
+	while (pkt != head) {
+		send_packet(pkt);
+		pkt = pkt->prev;
+	}
 }
 
 bool same_flow_check(struct packet *a, struct packet *b)
@@ -147,6 +161,7 @@ bool packet_has_accecn_option(struct packet *pkt)
 
 void accecn_aware_send(struct queue *q)
 {
+	struct packet *head = &(q->pkt);
 	struct packet *pkt;
 	struct packet *sendlist[3];
 	unsigned int sendcnt = 0;
@@ -156,12 +171,12 @@ void accecn_aware_send(struct queue *q)
 	if (q->pkt_count <= 0)
 		return;
 
-	pkt = q->pkt;
+	pkt = head->next;
 	sendlist[sendcnt++] = pkt;
 
-	while (pkt != NULL) {
+	while (pkt != head) {
 		if (packet_has_accecn_option(pkt)) {
-			if (pkt != q->pkt)
+			if (pkt != head->next)
 				sendlist[sendcnt++] = pkt;
 
 			accecncnt++;
@@ -177,7 +192,7 @@ void accecn_aware_send(struct queue *q)
 
 void immediate(struct queue *q, bool timeout)
 {
-	send_packet(q->pkt);
+	send_packet(q->pkt.next);
 	free_packets(q);
 }
 
@@ -190,7 +205,7 @@ void halfdrop(struct queue *q, bool timeout)
 	if (accecn_aware) {
 		accecn_aware_send(q);
 	} else {
-		send_packet(q->pkt);
+		send_packet(q->pkt.next);
 	}
 	free_packets(q);
 }
@@ -204,7 +219,7 @@ void every16(struct queue *q, bool timeout)
 	if (accecn_aware) {
 		accecn_aware_send(q);
 	} else {
-		send_packet(q->pkt);
+		send_packet(q->pkt.next);
 	}
 	free_packets(q);
 }
@@ -213,7 +228,7 @@ void every16(struct queue *q, bool timeout)
 
 void ackreqgrant(struct queue *q, bool timeout)
 {
-	struct packet *first, *pkt, *tmp;
+	struct packet *first, *pkt, *tmp, *head;
 	int seq_delta;
 	int depth;
 
@@ -222,7 +237,7 @@ void ackreqgrant(struct queue *q, bool timeout)
 		if (accecn_aware) {
 			accecn_aware_send(q);
 		} else {
-			send_packet(q->pkt);
+			send_packets(q);
 		}
 		free_packets(q);
 
@@ -233,7 +248,7 @@ void ackreqgrant(struct queue *q, bool timeout)
 
 	packet_count++;
 	if (packet_count < init_period_packets) {
-		send_packet(q->pkt);
+		send_packets(q);
 		free_packets(q);
 		return;
 	}
@@ -251,13 +266,14 @@ void ackreqgrant(struct queue *q, bool timeout)
 
 		add_event_for_queue(q);
 	} else {
-		first = q->pkt;
+		head = &(q->pkt);
+		first = head->next;
 		if (!pure_ack_check(first))
 			return;
 
 		pkt = first;
 		depth = 1;
-		while (pkt->next != NULL) {
+		while (pkt->next != head) {
 			/* Coalesce ACKs? */
 			if (same_flow_check(first, pkt->next)) {
 				if (!pure_ack_check(pkt->next))
@@ -270,7 +286,7 @@ void ackreqgrant(struct queue *q, bool timeout)
 				if (seq_delta <= 0)
 					break;
 
-				pkt->next = tmp->next;
+				plist_remove_packet(tmp);
 				q->pkt_count--;
 				free(tmp);
 				break;
