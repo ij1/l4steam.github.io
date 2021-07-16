@@ -581,18 +581,15 @@ def gen_testplan():
     DCTCPAccECN_ao = CCAFactory(name='DCTCP', color='green', aqm='dualpi2', ecn=ACCECN_ENABLED_VALUE, ecnopt=2)
 
     # cc, 2nd cc color
-    ccs = ((PragueECN, 'magenta'),
+    ccs = (
+           (PragueECN, 'magenta'),
            (Prague, 'magenta'),
            (Prague_ao, 'magenta'),
            (Praguenoopt, 'magenta'),
-           (DCTCP, 'olive'),
-           (DCTCPAccECN, 'olive'),
-           (DCTCPAccECN_ao, 'olive'),
-           (DCTCPnoopt, 'olive'),
            )
 
-    for bw in [20, 100]:
-        for rtt in [20, 40, 80]:
+    for bw in [120]:
+        for rtt in [10]:
 
 
             for cc, col in ccs:
@@ -600,7 +597,9 @@ def gen_testplan():
 
                 for strategy in strategies:
                     cc2 = CCAFactory(ack_strategy=strategy, color=col, superklass=cc)
-                    testplan.append(Test(cc, cc2=[cc2], bw=bw, rtt=rtt))
+                    cc3 = CCAFactory(superklass=cc, extra='2')
+                    cc4 = CCAFactory(ack_strategy=strategy, color=col, superklass=cc, extra='2')
+                    testplan.append(Test(cc, cc2=[cc2, cc3, cc4], bw=bw, rtt=rtt))
 
     Test.save_config(testplan)
     return testplan
