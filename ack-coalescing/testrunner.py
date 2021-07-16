@@ -301,8 +301,7 @@ class Test(object):
             cc.configure()
 
     def build_env(self, env):
-        initperiodpackets = self.bw * self.rtt * 1000.0 / self.MTU * 4
-        initperiodpackets = int(math.ceil(initperiodpackets))
+        initperiodpackets = 0
         base = {
             'AQM': self.cc1.AQM,
             'RATE': '%dMbit' % self.bw,
