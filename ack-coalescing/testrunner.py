@@ -423,11 +423,10 @@ class Test(object):
         return min(time_base)
 
     def legend(self, cc):
-        return '%s%s/ack%s@%dMbps/%gms/%s' % (cc.pretty_name(),
+        return '%s%s/ack%s@%dMbps/%gms' % (cc.pretty_name(),
                                               cc.ecn_string(),
                                               cc.ACK_STRATEGY,
-                                              self.bw, self.rtt + cc.EXTRA_RTT,
-                                              self.cc1.AQM_NAME)
+                                              self.bw, self.rtt + cc.EXTRA_RTT)
 
     def plot_bw(self, ax, time_base):
         ax.set_ylabel('Throughput [Mbps]')
