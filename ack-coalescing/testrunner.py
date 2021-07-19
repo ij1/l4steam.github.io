@@ -585,9 +585,7 @@ def gen_testplan():
 
 
             for cc, col in ccs:
-                strategies = ['reqgrant']
-
-                for strategy in strategies:
+                for strategy in ('reqgrant',):
                     cc2 = CCAFactory(ack_strategy=strategy, color=col, superklass=cc)
                     testplan.append(Test(cc, cc2=[cc2], bw=bw, rtt=rtt))
 
