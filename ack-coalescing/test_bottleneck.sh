@@ -248,7 +248,6 @@ function set_sysctl()
     ns_exec "$1" sysctl -qw "net.ipv4.tcp_congestion_control=${CCA[$1]}"
     ns_exec "$1" sysctl -qw "net.ipv4.tcp_ecn=${ECN[$1]}"
     ns_exec "$1" sysctl -qwe "net.ipv4.tcp_ecn_option=${ECNOPT[$1]}"
-    ns_exec "$1" sysctl -qwe "net.ipv4.tcp_ecn_unsafe_cep=${ECNUNSAFE[$1]}"
 }
 
 function gen_suffix()
