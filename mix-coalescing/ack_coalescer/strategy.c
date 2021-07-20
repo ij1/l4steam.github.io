@@ -12,7 +12,7 @@
 #include "coalescer.h"
 
 int accecn_aware = 0;
-int coalescer_depth = UINT_MAX;
+int coalescer_depth = INT_MAX;
 
 static struct event event_q = { .queue = NULL, .next = NULL };
 
