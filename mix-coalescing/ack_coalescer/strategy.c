@@ -228,7 +228,7 @@ void every16(struct queue *q, bool timeout)
 
 void ackreqgrant(struct queue *q, bool timeout)
 {
-	struct packet *first, *pkt, *tmp, *head;
+	struct packet *first, *pkt, *head, *next;
 	int seq_delta;
 	int depth;
 
@@ -274,30 +274,29 @@ void ackreqgrant(struct queue *q, bool timeout)
 		pkt = first;
 		depth = 1;
 		while (pkt->next != head) {
+			next = pkt->next;
 			/* Coalesce ACKs? */
-			if (same_flow_check(first, pkt->next)) {
-				if (!pure_ack_check(pkt->next))
+			if (same_flow_check(first, next)) {
+				if (!pure_ack_check(next))
 					break;
 
-				tmp = pkt->next;
 				seq_delta = ntohl(first->tcp->ack_seq) -
-				            ntohl(tmp->tcp->ack_seq);
+				            ntohl(next->tcp->ack_seq);
 
 				if (seq_delta <= 0)
 					break;
 
-				plist_remove_packet(tmp);
+				plist_remove_packet(next);
 				q->pkt_count--;
-				free(tmp);
-				break;
+				free(next);
+			} else {
+				pkt = pkt->next;
 			}
 
 			/* Allow limiting how deep the queue is looked at */
 			if (depth >= coalescer_depth)
 				break;
 			depth++;
-
-			pkt = pkt->next;
 		}
 	}
 }
