@@ -192,6 +192,8 @@ def CCAFactory(name=None, color=None, aqm=None, ecn=None, ecnopt=-1, ecnunsafe=-
                                     NewCCA.ecn_string(),
                                     extra)
 
+    CCA.ALL[NewCCA.__name__] = NewCCA
+
     return NewCCA
 
 def avg_series(x, t, period):
