@@ -126,7 +126,7 @@ def CCAFactory(name=None, color=None, aqm=None, ecn=None, ecnopt=-1, ecnunsafe=-
             if cls.ECN == 0:
                 return ""
             if cls.ECN == 1:
-                return "ECN"
+                return "DCTCPfb"
             if cls.ECN == ACCECN_ENABLED_VALUE:
                 s = "AccECN"
                 if cls.ECNOPT == 0:
@@ -134,7 +134,7 @@ def CCAFactory(name=None, color=None, aqm=None, ecn=None, ecnopt=-1, ecnunsafe=-
                 elif cls.ECNOPT == 2:
                     s += "-alwaysopt"
                 elif cls.ECNOPT == 1:
-                    pass
+                    s += "-minopt"
                 else:
                     s = ''
                 if s != '':
