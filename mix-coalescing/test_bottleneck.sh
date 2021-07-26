@@ -57,6 +57,7 @@ done
 RATE=${RATE:-100Mbit}
 DELAY=${DELAY:-0ms}
 AQM=${AQM:-dualpi2}
+OFFLOAD=${OFFLOAD:-off}
 LOG_PATTERN=${LOG_PATTERN:-}
 
 TIME=${TIME:-10}
@@ -132,11 +133,11 @@ function ns_create_link()
         _sudo ip link set dev "$name" netns "$ns"
     fi
     ns_exec "$ns" ip link set dev "$name" up
-    ns_exec "$ns" ethtool -K "$name" gro off gso off tso off
+    ns_exec "$ns" ethtool -K "$name" gro ${OFFLOAD} gso ${OFFLOAD} tso ${OFFLOAD}
     ns_exec "$ns" ip link set dev "$name" address "$(macaddr $1 $2)"
     ns_exec "$ns" ip address add dev "$name" "${ipaddr}/24"
     _sudo ip link set dev "$key" up
-    _sudo ethtool -K "$key" gro off gso off tso off
+    _sudo ethtool -K "$key" gro ${OFFLOAD} gso ${OFFLOAD} tso ${OFFLOAD}
 
     echo "$ipaddr $ns"  | $SUDO tee -a /etc/hosts > /dev/null
 }
