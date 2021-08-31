@@ -1,0 +1,44 @@
+#!/usr/bin/perl -w
+
+#
+# Generates cdf (0...1) plot-ready text from pre-sorted input
+#
+# Author: Ilpo Järvinen
+#
+
+use strict;
+
+my @values = ();
+
+while (<>) {
+  push (@values, $_);
+}
+
+my $nrvalues = ($#values);
+$nrvalues = 1
+  if $nrvalues == 0;
+
+my $y = undef;
+my $lasty = undef;
+my $lastx = undef;
+my $count = 0;
+for (my $i = 0; $i <= $#values; $i++) {
+  my $x = $i / $nrvalues;
+  $y = $values[$i];
+  my $xval = sprintf("%.21f", $x);
+
+  if (not defined $lasty) {
+    print "$xval\t$y";
+  } elsif (($y ne $lasty)) {
+    print "$lastx\t$lasty"
+      if ($count > 1);
+    print "$xval\t$y";
+    $count = 0;
+  }
+  $lastx = $xval;
+  $lasty = $y;
+  $count++;
+}
+
+printf("%.21f\t%s", 1, $y)
+	if ($count > 1);
